@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Environment (never commit real secrets)
+.env
+.env.local
+
+# Credentials / service-account keys (never commit)
+config/serviceAccountKey.json
+*.pem
+*.p12
+*.key
+
+# Logs
+*.log
+npm-debug.log*

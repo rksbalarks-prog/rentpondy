@@ -1,0 +1,164 @@
+/* ============================================================
+   Stay Owners Plan — premium GOLDEN pricing screen
+   UI only. Mobile-first, glassmorphism + gold gradients + glow.
+   Palette: bronze #8A6D1B · gold #D4AF37 · light gold #F0C75E
+            champagne #FBF3DC · deep #B8860B
+   ============================================================ */
+
+.sop-wrap {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  background: linear-gradient(180deg, #fbf2d6 0%, #fdf8ea 38%, #ffffff 100%);
+  overflow-x: hidden;
+}
+
+/* ── ambient blurred blobs (warm gold/amber) ── */
+.sop-blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+  z-index: 0;
+}
+.sop-blob--1 { width: 320px; height: 320px; top: -90px; left: -110px; background: radial-gradient(circle, #f3d27a 0%, transparent 70%); opacity: 0.60; }
+.sop-blob--2 { width: 360px; height: 360px; top: 32%; right: -150px; background: radial-gradient(circle, #f5c563 0%, transparent 70%); opacity: 0.45; }
+.sop-blob--3 { width: 300px; height: 300px; bottom: -110px; left: 8%; background: radial-gradient(circle, #ecd9a0 0%, transparent 70%); opacity: 0.45; }
+
+.sop-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  width: 100%;
+  min-height: 100vh;
+  padding-bottom: 44px;
+}
+
+/* ── sticky glassy header (bronze → gold) ── */
+.sop-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 16px;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(138, 109, 27, 0.94) 0%, rgba(184, 134, 11, 0.94) 55%, rgba(212, 175, 55, 0.94) 100%);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom-left-radius: 22px;
+  border-bottom-right-radius: 22px;
+  box-shadow: 0 8px 26px rgba(138, 109, 27, 0.30);
+}
+.sop-back {
+  width: 40px; height: 40px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: none; cursor: pointer; border-radius: 12px;
+  color: #fff; font-size: 18px;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.sop-back:hover { background: rgba(255, 255, 255, 0.32); transform: translateX(-2px); }
+.sop-htext { flex: 1; min-width: 0; }
+.sop-title { margin: 0; font-size: 19px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.sop-subtitle { margin: 3px 0 0; font-size: 12.5px; opacity: 0.92; font-weight: 500; }
+
+.sop-body { padding: 18px 16px 0; }
+.sop-lead { font-size: 14px; color: #7a6a45; margin: 2px 0 18px; font-weight: 500; }
+
+/* ── current subscription ── */
+.sop-sub {
+  background: linear-gradient(135deg, #fdf3d3 0%, #fbe8c0 100%);
+  border: 1px solid rgba(184, 134, 11, 0.25);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 18px;
+  box-shadow: 0 6px 20px rgba(184, 134, 11, 0.14);
+}
+.sop-sub-label { font-size: 11px; font-weight: 800; color: #9a7209; text-transform: uppercase; letter-spacing: 0.06em; }
+.sop-sub-name { font-size: 18px; font-weight: 800; color: #3d3115; margin: 2px 0; }
+.sop-sub-meta { font-size: 13px; color: #7a6a45; }
+
+/* ── banner ── */
+.sop-banner { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 14px; margin-bottom: 16px; font-weight: 600; font-size: 14px; }
+.sop-banner--ok { background: #eafaf0; color: #15803d; }
+.sop-banner--err { background: #fdeeee; color: #b91c1c; }
+
+/* ── plan card (warm glass) ── */
+.sop-card {
+  position: relative;
+  background: rgba(255, 253, 246, 0.78);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 24px;
+  padding: 22px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 30px rgba(150, 110, 20, 0.12);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+  will-change: transform;
+}
+.sop-card:hover { box-shadow: 0 18px 46px rgba(150, 110, 20, 0.24); }
+
+.sop-card.is-popular {
+  margin-top: 10px;
+  border: 2px solid rgba(212, 175, 55, 0.75);
+  box-shadow: 0 16px 44px rgba(212, 175, 55, 0.32), 0 0 0 4px rgba(212, 175, 55, 0.12);
+}
+
+/* ── ribbon ── */
+.sop-ribbon {
+  position: absolute;
+  top: -14px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, #B8860B, #D4AF37 60%, #F0C75E);
+  color: #4a3a08; font-size: 11px; font-weight: 800; letter-spacing: 0.05em;
+  padding: 6px 16px; border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(184, 134, 11, 0.5);
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+
+.sop-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.sop-badge {
+  display: inline-block; font-size: 12.5px; font-weight: 800; letter-spacing: 0.04em;
+  text-transform: uppercase; color: #9a7209;
+  background: rgba(212, 175, 55, 0.16); padding: 5px 14px; border-radius: 999px;
+}
+.sop-desc { font-size: 13px; color: #7a6a45; margin: 9px 0 0; }
+
+.sop-price-wrap { text-align: right; flex-shrink: 0; }
+.sop-price {
+  font-size: 34px; font-weight: 900; line-height: 1;
+  background: linear-gradient(135deg, #9a6e08 0%, #C9971E 45%, #E6B422 75%, #F3D67A 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.sop-price-unit { display: block; font-size: 11px; font-weight: 700; color: #b39a5e; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+
+.sop-benefits { margin: 18px 0; display: flex; flex-direction: column; gap: 11px; }
+.sop-benefit { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #4a4130; font-weight: 600; }
+.sop-benefit-ic {
+  width: 28px; height: 28px; flex-shrink: 0; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+  background: rgba(212, 175, 55, 0.16);
+}
+.sop-check { color: #16a34a; font-size: 14px; flex-shrink: 0; }
+
+.sop-cta {
+  width: 100%; padding: 14px; border: none; border-radius: 14px; cursor: pointer;
+  color: #fff; font-size: 15px; font-weight: 800; letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #B8860B 0%, #D4AF37 55%, #C9971E 100%);
+  box-shadow: 0 8px 22px rgba(184, 134, 11, 0.38);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: box-shadow 0.2s ease, filter 0.2s ease;
+}
+.sop-cta:hover { box-shadow: 0 12px 30px rgba(184, 134, 11, 0.52); filter: brightness(1.06); }
+.sop-cta:disabled { opacity: 0.7; cursor: default; }
+
+.sop-empty { text-align: center; color: #a08a55; margin-top: 44px; font-size: 14px; }
+.sop-login { text-align: center; color: #b91c1c; font-size: 13px; margin-top: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sop-back, .sop-cta, .sop-card { transition: none; }
+}

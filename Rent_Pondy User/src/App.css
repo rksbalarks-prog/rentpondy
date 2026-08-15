@@ -1,0 +1,143 @@
+/* ========================================
+   ENHANCED SEARCH BAR STYLES
+   ======================================== */
+
+/* Search Input Placeholder Styling */
+input[placeholder="Enter Area Name or Pincode"]::placeholder {
+  color: #a8a8d8;
+  opacity: 0.85;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* Search Container Hover Effect */
+div[style*="flex-1"] input:focus + div,
+div[style*="display: flex"][style*="align-items: center"][style*="background: linear-gradient"] {
+  animation: searchGlow 0.3s ease;
+}
+
+/* Input Focus Effect */
+input[placeholder="Enter Area Name or Pincode"]:focus {
+  color: #4F4B7E;
+  font-weight: 600;
+}
+
+/* ========================================
+   SEARCH BAR CONTAINER STYLING
+   ======================================== */
+
+/* Add subtle animation for search icon */
+@keyframes iconPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Suggestions Dropdown Enhancement */
+div[style*="position: absolute"][style*="top: 100%"] {
+  animation: slideDown 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Suggestion Item Hover */
+div[style*="borderRight: 1px solid #e0e0e0"] {
+  transition: all 0.2s ease;
+}
+
+div[style*="borderRight: 1px solid #e0e0e0"]:hover {
+  background-color: #f5f6ff !important;
+  padding-left: 16px !important;
+  box-shadow: inset 4px 0 0 #4F4B7E;
+}
+
+/* ========================================
+   GLOBAL FORM ENHANCEMENTS
+   ======================================== */
+
+/* Smooth transitions for all inputs */
+input,
+select,
+textarea {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus states with better visibility */
+input:focus,
+select:focus,
+textarea:focus {
+  box-shadow: inset 0 0 0 2px rgba(79, 75, 126, 0.1);
+}
+
+/* Placeholder styling globally */
+::placeholder {
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+::-webkit-input-placeholder {
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+:-moz-placeholder {
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+::-moz-placeholder {
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+:-ms-input-placeholder {
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+/* ========================================
+   ACCESSIBILITY & RESPONSIVE
+   ======================================== */
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  input[placeholder="Enter Area Name or Pincode"] {
+    border: 2px solid #4F4B7E !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  input[placeholder="Enter Area Name or Pincode"] {
+    background: linear-gradient(135deg, #2a2a3e 0%, #1f1f2e 100%);
+    color: #e0e0ff;
+  }
+  
+  input[placeholder="Enter Area Name or Pincode"]::placeholder {
+    color: #8080b0;
+  }
+}

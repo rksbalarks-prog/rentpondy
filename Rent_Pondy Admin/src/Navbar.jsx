@@ -1,0 +1,156 @@
+
+
+
+import React, { useState, useEffect } from "react";
+import { Navbar, Container, Dropdown } from "react-bootstrap";
+import { FaBars, FaTimes, FaUserCircle, FaCog, FaSignOutAlt } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { getAdminBase, adminBaseLabel } from "./utils/adminBase";
+
+const AppNavbar = ({ toggleSidebar }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
+  const [adminName, setAdminName] = useState(localStorage.getItem("adminName") || "");
+
+  // Read-only: which city-base scope this admin logged in with.
+  const baseLabel = adminBaseLabel(getAdminBase());
+
+  const navigate = useNavigate();
+
+  const handleToggle = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+    toggleSidebar();
+  };
+
+  // ✅ Static helper function
+  const ensureSingleRefresh = () => {
+    const hasRefreshed = sessionStorage.getItem("navbarRefreshed");
+    if (!hasRefreshed) {
+      sessionStorage.setItem("navbarRefreshed", "true");
+      window.location.reload();
+    }
+  };
+
+  // 🔄 Auto-refresh (only once per session)
+  useEffect(() => {
+    ensureSingleRefresh();
+  }, []);
+
+  // Fetch profile image
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/all-get-puc-profiles-rent`);
+        const matched = res.data.data.find((profile) => profile.name === adminName);
+        if (matched && matched.profileImage) {
+          setProfileImage(matched.profileImage);
+        }
+      } catch (err) {
+        console.error("Profile fetch error", err);
+      }
+    };
+
+    if (adminName) {
+      fetchProfile();
+    }
+  }, [adminName]);
+
+  const handleLogout = () => {
+    // Clear all authentication-related data from localStorage
+    localStorage.removeItem("adminName");
+    localStorage.removeItem("adminRole");
+    localStorage.removeItem("adminUserType");
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("otpVerified");
+    sessionStorage.removeItem("navbarRefreshed"); // allow refresh next login
+    setAdminName("");
+    navigate("/admin"); // redirect to login
+  };
+
+  return (
+    <Navbar expand="md" className="shadow-sm bg-light p-3 mb-3">
+      <Container fluid>
+        <Navbar.Brand href="#" className="d-flex align-items-center">
+          <span className="fw-bold text-primary"> Rent Pondy  | Admin Panel  </span>
+        </Navbar.Brand>
+
+        <div
+          style={{
+            marginLeft: "auto",
+            paddingRight: "1rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+          }}
+        >
+          {/* Read-only badge showing the current city-base scope */}
+          <span
+            className="badge bg-primary"
+            title="City base"
+            style={{ fontWeight: 600 }}
+          >
+            {baseLabel}
+          </span>
+
+          <span>
+            Welcome, <strong>{adminName}</strong>
+          </span>
+        </div>
+
+        <button
+          className="border-0 bg-transparent d-md-none"
+          onClick={handleToggle}
+          aria-label="Toggle Sidebar"
+        >
+          {isSidebarOpen ? (
+            <FaTimes size={25} className="text-primary" />
+          ) : (
+            <FaBars size={25} className="text-primary" />
+          )}
+        </button>
+
+        {/* Profile Dropdown */}
+        <Dropdown align="end">
+          <Dropdown.Toggle
+            variant="light"
+            id="dropdown-profile"
+            className="border-0 bg-transparent d-flex align-items-center p-0"
+          >
+            {profileImage ? (
+              <img
+                src={profileImage}
+                alt="Profile"
+                width="35"
+                height="35"
+                className="rounded-circle"
+                style={{ objectFit: "cover" }}
+              />
+            ) : (
+              <FaUserCircle size={30} className="text-primary" />
+            )}
+          </Dropdown.Toggle>
+          <Dropdown.Menu className="shadow rounded">
+            <Dropdown.Item
+              onClick={() => navigate("/dashboard/profile")}
+              className="d-flex align-items-center"
+            >
+              <FaUserCircle className="me-2" /> Profile
+            </Dropdown.Item>
+            <Dropdown.Item href="#settings" className="d-flex align-items-center">
+              <FaCog className="me-2" /> Settings
+            </Dropdown.Item>
+            <Dropdown.Item
+              onClick={handleLogout}
+              className="d-flex align-items-center text-danger"
+            >
+              <FaSignOutAlt className="me-2" /> Logout
+            </Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
+      </Container>
+    </Navbar>
+  );
+};
+
+export default AppNavbar;

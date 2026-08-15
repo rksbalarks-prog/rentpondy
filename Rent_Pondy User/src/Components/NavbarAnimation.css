@@ -1,0 +1,190 @@
+/* Navbar Animation */
+.navbar-intro-container {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  z-index: 10;
+}
+
+.house {
+  position: relative;
+  text-align: center;
+  /* Lock to a fixed width so the roof's width animation (0 → full)
+     doesn't reflow the navbar and shift the chip + bell on the right.
+     Slightly wider than before so "CHENNAI" fits without clipping. */
+  width: clamp(160px, 38vw, 280px);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Roof line — slim dark bar with a hairline shadow for a premium feel. */
+.roof {
+  width: 0;
+  height: 2px;
+  background: #0f172a;
+  border-radius: 999px;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.08);
+  margin: 0 auto 5px;
+  animation: drawRoof 4s cubic-bezier(0.22, 1, 0.36, 1) forwards infinite;
+  animation-delay: 0s;
+  max-width: 100%;
+}
+
+@keyframes drawRoof {
+  0% {
+    width: 0;
+    opacity: 0;
+  }
+  8% {
+    width: 0;
+    opacity: 1;
+  }
+  18% {
+    width: 100%;
+    opacity: 1;
+  }
+  92% {
+    width: 100%;
+    opacity: 1;
+  }
+  100% {
+    width: 0;
+    opacity: 0;
+  }
+}
+
+/* Text — sized with clamp() so it fits inside the mobile navbar
+   (smaller on narrow screens, full size on tablet/desktop). Tight letter-
+   spacing + 800 weight in a humanist sans gives it a clean editorial look. */
+.title {
+  font-size: clamp(13px, 4vw, 28px);
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  gap: clamp(6px, 1.8vw, 16px);
+  justify-content: center;
+  transform: scale(0.9);
+  animation: finalGlow 25s ease forwards infinite;
+  animation-delay: 0s;
+  font-family: "Poppins", "Inter", sans-serif;
+  white-space: nowrap;
+  letter-spacing: 0.4px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Both words share a hairline drop-shadow for crisp depth on a light bg. */
+.rent,
+.pondy {
+  opacity: 1;
+  text-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+}
+
+/* RENT — solid emerald, slides in from the left. */
+.rent {
+  color: #16a34a !important;
+  animation: slideLeft 3s cubic-bezier(0.22, 1, 0.36, 1) forwards infinite;
+  animation-delay: 1.2s;
+}
+
+/* PONDY / CHENNAI — solid charcoal, slides in from the right. */
+.pondy {
+  color: #0f172a !important;
+  animation: slideRight 3s cubic-bezier(0.22, 1, 0.36, 1) forwards infinite;
+  animation-delay: 2.4s;
+}
+
+/* If the user (or their OS) has reduced-motion enabled, browsers
+   skip CSS animations. With the original `opacity: 0` defaults that
+   left the title permanently invisible — show it statically instead. */
+@media (prefers-reduced-motion: reduce) {
+  .rent,
+  .pondy {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+  .roof {
+    width: 260px;
+    opacity: 1;
+    animation: none;
+  }
+  .title {
+    transform: scale(1);
+    animation: none;
+  }
+}
+
+/* Animations — clean, restrained slide with a hint of letter-spacing
+   tightening as the word settles, for a quietly premium feel. */
+@keyframes slideLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-60px);
+    letter-spacing: 4px;
+  }
+  14% {
+    opacity: 1;
+    transform: translateX(0);
+    letter-spacing: 0.4px;
+  }
+  88% {
+    opacity: 1;
+    transform: translateX(0);
+    letter-spacing: 0.4px;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-60px);
+    letter-spacing: 4px;
+  }
+}
+
+@keyframes slideRight {
+  0% {
+    opacity: 0;
+    transform: translateX(60px);
+    letter-spacing: 4px;
+  }
+  16% {
+    opacity: 1;
+    transform: translateX(0);
+    letter-spacing: 0.4px;
+  }
+  88% {
+    opacity: 1;
+    transform: translateX(0);
+    letter-spacing: 0.4px;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(60px);
+    letter-spacing: 4px;
+  }
+}
+
+@keyframes finalGlow {
+  0% {
+    transform: scale(0.85);
+    text-shadow: 0 0 0px rgba(0, 0, 0, 0);
+  }
+  18% {
+    transform: scale(0.85);
+    text-shadow: 0 0 0px rgba(0, 0, 0, 0);
+  }
+  28% {
+    transform: scale(1);
+    text-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+  }
+  38% {
+    transform: scale(1.02);
+    text-shadow: 0 0 20px rgba(0, 0, 0, 0.25);
+  }
+  92% {
+    transform: scale(1);
+    text-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+  }
+  100% {
+    transform: scale(0.85);
+    text-shadow: 0 0 0px rgba(0, 0, 0, 0);
+  }
+}

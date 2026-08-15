@@ -1,0 +1,28 @@
+# https://www.robotstxt.org/robotstxt.html
+#
+# Fallback only. Once the nginx block in PPC/Seo/nginx.conf.txt is applied,
+# /robots.txt is served by the backend (PPC/Seo/SeoRouter.js) and this file is
+# no longer used. Keep the two in sync.
+
+User-agent: *
+Allow: /
+
+# Logged-in / transactional routes — nothing to index, and crawling them burns
+# crawl budget on a large single-page app.
+Disallow: /my
+Disallow: /my-plan
+Disallow: /my-profile
+Disallow: /myplan-datas
+Disallow: /payu
+Disallow: /payu-form
+Disallow: /payment-success
+Disallow: /payment-failure
+Disallow: /points-payment-success
+Disallow: /points-payment-failure
+Disallow: /points-history
+Disallow: /web-login
+Disallow: /login
+Disallow: /tabs
+Disallow: /PPC/
+
+Sitemap: https://rentpondy.com/sitemap.xml

@@ -1,0 +1,162 @@
+# nginx additions for the SEO layer — rentpondy.com
+#
+# Verified against the live VPS on 2026-07-22:
+#   nginx 1.26.1, no Apache. Node listening on *:5005 (pm2 process "server").
+#   Real nginx.conf : /usr/local/nginx/conf/nginx.conf   (compiled from source)
+#   which includes  : /etc/nginx/availablesites/*.conf
+#
+# >>> THE FILE TO EDIT IS:  /etc/nginx/availablesites/rentpondy.com.conf  <<<
+#
+#   That file holds BOTH the port-80 redirect and the live `listen 443 ssl`
+#   server block (the one containing `location /PPC/`).
+#
+#   Do NOT edit /etc/nginx/availablesites/ssl_rentpondy.com.conf — it declares a
+#   second 443 block for the same server_name, so nginx already ignores it:
+#       nginx: [warn] conflicting server name "rentpondy.com" on 0.0.0.0:443, ignored
+#   (That warning predates this change. Leave it alone; it is not ours to fix.)
+#
+# WHAT THIS DOES
+#   Sends five path patterns to Node instead of the static React build:
+#       /robots.txt                    crawl rules + sitemap pointer
+#       /sitemap.xml, /sitemap-*.xml   generated fresh from MongoDB
+#       /property/...                  server-rendered property pages
+#       /rent/...                      server-rendered landing pages
+#   Everything else is untouched: /, /pondicherry, /detail/123, /process/,
+#   /PPC/... all keep behaving exactly as they do today.
+#
+# WHY THE UPSTREAM IS [::1]:5005
+#   Matching the existing `location /PPC/` block, which is proven working on this
+#   box. Node binds *:5005 so 127.0.0.1 would work too — no reason to differ.
+#
+# WHY NO TRAILING SLASH ON proxy_pass
+#   The existing /PPC/ block uses `proxy_pass http://[::1]:5005/;` WITH a slash,
+#   which strips the /PPC prefix (that is why the app's API base is
+#   .../PPC/PPC/...). Our blocks must pass the FULL path through, so they have
+#   NO trailing slash. Do not "tidy" one to match the other.
+#
+# WHY ^~ ON /property/ AND /rent/
+#   This server block ends with a regex location:
+#       location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$
+#   A plain prefix match loses to a later regex match; `^~` stops regex
+#   evaluation once the prefix matches. Also note `/property-map` (a React route)
+#   does NOT start with `/property/`, so it is unaffected.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 1 — back up
+#
+#   ssh rentpondy
+#   sudo cp /etc/nginx/availablesites/rentpondy.com.conf \
+#           /root/rentpondy.com.conf.bak-$(date +%F)
+#
+# STEP 2 — edit
+#
+#   sudo nano /etc/nginx/availablesites/rentpondy.com.conf
+#
+#   Scroll to the end of the `location /PPC/ { ... }` block — it closes with `}`
+#   on its own line, immediately before the comment `# Security headers`.
+#   Paste everything between the two markers below on the blank line in between.
+#
+#   (nano: Ctrl+O then Enter to save, Ctrl+X to exit.)
+#
+# STEP 3 — test.  MUST print "syntax is ok" AND "test is successful".
+#
+#   sudo nginx -t
+#
+#   Two pre-existing "conflicting server name ... ignored" warnings are normal
+#   and were there before this change. Any NEW error: do not reload, undo STEP 2.
+#
+# STEP 4 — apply.  Zero downtime; in-flight requests are allowed to finish.
+#
+#   sudo systemctl reload nginx
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── paste from here ──────────────────────────────────────────────────────────
+
+    # ===== SEO layer (PPC/Seo/) =====
+
+    # Crawl rules, generated from the live listings.
+    location = /robots.txt {
+        proxy_pass         http://[::1]:5005;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+
+    # Sitemap index. Rebuilt from MongoDB, so properties uploaded today appear
+    # here today.
+    location = /sitemap.xml {
+        proxy_pass         http://[::1]:5005;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+
+    # Child sitemaps: -pages, -locations, -properties-1, -properties-2, ...
+    location ~ ^/sitemap-[a-z0-9\-]+\.xml$ {
+        proxy_pass         http://[::1]:5005;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+
+    # Server-rendered property pages, e.g.
+    #   /property/3691/2-bhk-house-for-rent-in-kurumbapet-pondicherry
+    location ^~ /property/ {
+        proxy_pass         http://[::1]:5005;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
+
+    # Server-rendered landing pages, e.g.
+    #   /rent/pondicherry
+    #   /rent/pondicherry/apartment
+    #   /rent/chennai/apartment/mylapore
+    location ^~ /rent/ {
+        proxy_pass         http://[::1]:5005;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
+
+    # ===== end SEO layer =====
+
+# ── to here ──────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 5 — verify (run from your PC, or in a browser)
+#
+#   curl -sI https://rentpondy.com/sitemap.xml | head -1
+#       -> HTTP/2 200
+#
+#   curl -s https://rentpondy.com/robots.txt | tail -2
+#       -> Sitemap: https://rentpondy.com/sitemap.xml
+#
+#   curl -s https://rentpondy.com/rent/pondicherry/apartment | grep -o '<h1>.*</h1>'
+#       -> <h1>Apartment for Rent in Pondicherry</h1>
+#
+#   curl -sI https://rentpondy.com/property/3691 | head -2
+#       -> HTTP/2 301  +  location: /property/3691/2-bhk-house-for-rent-in-...
+#
+#   MUST STILL WORK (nothing may regress):
+#   curl -sI https://rentpondy.com/                | head -1   -> 200 React app
+#   curl -sI https://rentpondy.com/pondicherry     | head -1   -> 200 React app
+#   curl -sI https://rentpondy.com/detail/3691     | head -1   -> 200 React app
+#   curl -s  https://rentpondy.com/PPC/PPC/health              -> {"status":"OK"...}
+#
+# ROLLBACK (any problem, ~5 seconds)
+#
+#   sudo cp /root/rentpondy.com.conf.bak-$(date +%F) \
+#           /etc/nginx/availablesites/rentpondy.com.conf
+#   sudo nginx -t && sudo systemctl reload nginx
+# ─────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,443 @@
+/* .my .property-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 20px;
+    background-color: #f9f9f9;
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+  } */
+
+/* Property Card Payment Status Styling */
+.property-card {
+  position: relative;
+  border-radius: 14px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+/* PAID CARD */
+.paid-card {
+  border: 2px solid #0f9f2c !important;
+  border-left: 6px solid #0f9f2c !important;
+  background: linear-gradient(135deg, #e8f9ed, #f5fff8, #ffffff) !important;
+  box-shadow: 0 4px 20px rgba(15, 159, 44, 0.3), inset 0 0 30px rgba(15, 159, 44, 0.05);
+}
+
+.paid-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0f9f2c, #34d058, #0f9f2c);
+}
+
+/* PENDING CARD */
+.pending-card {
+  border: 2px solid #ff3b3b !important;
+  border-left: 6px solid #ff3b3b !important;
+  background: linear-gradient(135deg, #ffebeb, #fff5f5, #ffffff) !important;
+  box-shadow: 0 4px 20px rgba(255, 59, 59, 0.3), inset 0 0 30px rgba(255, 59, 59, 0.05);
+}
+
+.pending-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ff3b3b, #ff6b6b, #ff3b3b);
+}
+
+/* STAMP LABEL - Pill button style */
+/* Payment Badge - Small Pill Style */
+.payment-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.payment-badge.paid {
+  background: #28a745;
+  color: #fff;
+}
+.payment-badge.pending {
+  background: #dc3545;
+  color: #fff;
+}
+.property-card {
+  position: relative;
+  /* ...other styles... */
+}
+
+/* HOVER POLISH */
+.property-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.paid-card:hover {
+  box-shadow: 0 8px 30px rgba(15, 159, 44, 0.4);
+}
+
+.pending-card:hover {
+  box-shadow: 0 8px 30px rgba(255, 59, 59, 0.4);
+}
+  
+ .my .property-details h5 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+  }
+  
+ .my .property-details p {
+    margin: 2px 0;
+    font-size: 14px;
+    color: #555;
+    justify-content: space-between;
+  }
+
+ .my .property-image .incomplete-button {
+    position: absolute;
+    bottom: 10px;
+    transform: translateX(-50%);
+    background-color: orangered; 
+    color: white;
+    border: none;
+    padding: 3px 3px;
+    font-size: 0.8rem;
+    border-radius: 5px;
+    left: 20%;
+  }
+
+  
+.my .nav-link:hover {
+    color: white;
+    background-color: rgb(47,116,127);
+  }
+  
+  .my .nav-link
+  {
+    color: rgb(47,116,127);
+    font-weight: bold;
+    
+  } 
+  
+
+  .no-data-message {
+    text-align: center;
+    padding: 20px;
+    color: #777;
+    font-size: 18px;
+  }
+  
+
+  .fixed-nav {
+    position: fixed;
+    top: 160px;
+    /* width: 100%; */
+    z-index: 10; 
+    background-color: #fff; /* Ensures the background is consistent */
+    border-bottom: 1px solid #ccc; /* Optional: Adds a bottom border for separation */
+    padding-top: 10px; /* Adjust padding as needed */
+    padding-bottom: 10px;
+  }
+
+   /* =============================================
+   MyProperty Card - Exact Mobile Design Fix
+   Add this to MyProperty.css
+   ============================================= */
+
+/* Reset Bootstrap column interference */
+.property-card .row,
+.property-card [class*="col-"] {
+  min-width: 0 !important;
+}
+
+/* ── MAIN CARD WRAPPER ── */
+.property-card {
+  display: flex !important;
+  flex-direction: row !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  margin-bottom: 12px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  position: relative;
+}
+
+.paid-card {
+  border: 1.5px solid #0F9F2C !important;
+}
+
+.pending-card {
+  border: 1.5px solid #e74c3c !important;
+  background: #fff5f5 !important;
+}
+
+/* ── LEFT IMAGE COLUMN ── */
+.property-card .card-img-col {
+  flex: 0 0 130px;
+  width: 130px;
+  min-width: 130px;
+  max-width: 130px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.property-card .card-rent-id {
+  background: #4F4B7E;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  padding: 4px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.property-card .card-img-wrapper {
+  flex: 1;
+  position: relative;
+  min-height: 130px;
+}
+
+.property-card .card-img-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.property-card .card-status-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #5a52b3;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  padding: 3px 4px;
+}
+
+/* ── RIGHT DETAILS COLUMN ── */
+.property-card .card-details-col {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  background: #fff;
+  padding: 8px 10px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Top: mode label */
+.property-card .card-mode {
+  font-size: 10px;
+  color: #666;
+  margin-bottom: 1px;
+}
+
+/* Property type heading */
+.property-card .card-prop-type {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Location */
+.property-card .card-location {
+  font-size: 10px;
+  color: #555;
+  margin: 0 0 6px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Info grid - 2 columns */
+.property-card .card-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 6px;
+  margin-bottom: 5px;
+}
+
+.property-card .card-info-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.property-card .card-info-item img {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.property-card .card-info-item span {
+  font-size: 10px;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Price row */
+.property-card .card-price {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 3px;
+}
+
+.property-card .card-price img {
+  width: 9px;
+  flex-shrink: 0;
+}
+
+.property-card .card-price-amount {
+  font-size: 13px;
+  font-weight: 700;
+  color: #4F4B7E;
+}
+
+.property-card .card-price-unit {
+  font-size: 10px;
+  color: #4F4B7E;
+}
+
+/* Payment status text */
+.property-card .card-payment-status {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.property-card .card-payment-status.paid {
+  color: #0F9F2C;
+}
+
+.property-card .card-payment-status.pending {
+  color: #e74c3c;
+}
+
+/* Action buttons */
+.property-card .card-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.property-card .card-actions .btn {
+  flex: 1;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 4px 2px !important;
+  border-radius: 6px !important;
+  white-space: nowrap !important;
+  min-width: 0 !important;
+  border: none !important;
+}
+
+.property-card .card-actions .btn-remove {
+  background: #e74c3c !important;
+  color: #fff !important;
+}
+
+.property-card .card-actions .btn-edit {
+  background: #3660FF !important;
+  color: #fff !important;
+}
+
+.property-card .card-actions .btn-pay {
+  background: #0F9F2C !important;
+  color: #fff !important;
+}
+
+/* ── PENDING TOP LABEL ── */
+.property-card .card-pending-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #e74c3c;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-bottom-right-radius: 6px;
+  z-index: 2;
+}
+
+.property-card .card-paid-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #0F9F2C;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-bottom-right-radius: 6px;
+  z-index: 2;
+}
+
+/* Payment badge (top right of details) */
+.card-payment-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.card-payment-badge.paid {
+  background: #e6f9ec;
+  color: #0F9F2C;
+  border: 1px solid #0F9F2C;
+}
+
+.card-payment-badge.pending {
+  background: #fff0f0;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 380px) {
+  .property-card .card-img-col {
+    flex: 0 0 110px;
+    width: 110px;
+    min-width: 110px;
+    max-width: 110px;
+  }
+
+  .property-card .card-img-wrapper {
+    min-height: 110px;
+  }
+
+  .property-card .card-prop-type {
+    font-size: 12px;
+  }
+
+  .property-card .card-actions .btn {
+    font-size: 10px !important;
+    padding: 3px 1px !important;
+  }
+}

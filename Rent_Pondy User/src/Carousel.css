@@ -1,0 +1,34 @@
+/* .custom-carousel {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+  }
+  
+  .carousel-image {
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+    z-index: 0;
+  }
+  
+  .carousel-image.active {
+    opacity: 1;
+    z-index: 1;
+  }
+   */
+
+   .custom-carousel-image {
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+    z-index: 0;
+  }
+  
+  /* .custom-carousel-image.active {
+    opacity: 1;
+    z-index: 1;
+  } */
+  .carousel-item.active .custom-carousel-image {
+    opacity: 1;
+    z-index: 1;
+  }
+  

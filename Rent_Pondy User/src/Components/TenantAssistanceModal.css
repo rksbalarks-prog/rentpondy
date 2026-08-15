@@ -1,0 +1,55 @@
+/* TenantAssistanceModal Styles */
+
+.tenant-assistance-overlay {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.tenant-assistance-modal {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .tenant-assistance-modal {
+    width: 95% !important;
+    padding: 20px !important;
+    max-width: 500px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .tenant-assistance-modal {
+    width: 98% !important;
+    padding: 15px !important;
+    max-width: 100% !important;
+  }
+  
+  .tenant-assistance-modal h2 {
+    font-size: 20px !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .tenant-assistance-modal p {
+    font-size: 14px !important;
+  }
+}

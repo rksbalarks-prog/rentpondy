@@ -1,0 +1,38 @@
+.exclusive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border: 1px solid #e0e0e0;
+}
+
+.exclusive-card {
+  text-align: center;
+  padding: 30px 10px;
+  border: 1px solid #e0e0e0;
+  background: #f7f7f7;
+  transition: 0.3s ease;
+  cursor: pointer;
+}
+
+.exclusive-card:hover {
+  background: #ffffff;
+}
+
+.exclusive-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.exclusive-card p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .exclusive-card {
+    padding: 20px 5px;
+  }
+}

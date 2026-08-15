@@ -1,0 +1,199 @@
+# nginx canonical redirects — rentpondy.com
+#
+# APPLIED TO PROD 2026-07-30. This file is the repo's record of a change that
+# otherwise exists only on the VPS.
+#
+# THE FILE ON THE SERVER IS:  /etc/nginx/availablesites/rentpondy.com.conf
+#   (see nginx.conf.txt in this folder for why it is that file and not
+#    ssl_rentpondy.com.conf, which nginx already ignores)
+#
+# Backup taken before this change:
+#   /root/rentpondy.com.conf.bak-canonical-2026-07-30
+#   /root/index.html.bak-2026-07-30
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# THE BUG
+#
+#   Searching "rent pondy" on Google returned a result whose target was
+#   https://www.rentpondy.com/index.html — a legacy URL Google had indexed
+#   (its cached title was the old "RentPondy | Properties", from a build
+#   predating the SEO layer).
+#
+#   Clicking it produced a near-blank page reading "Nopage":
+#     1. nginx has `index index.html`, so /index.html is a real file and was
+#        served with 200 OK — no 404, nothing in the error log.
+#     2. The React app booted, and React Router had no route for the literal
+#        path "/index.html".
+#     3. So it fell through to `<Route path="*">`, which rendered
+#        Components/Nopage.jsx — literally `<div>Nopage</div>`.
+#
+#   Compounding it: www.rentpondy.com also answered 200 instead of redirecting,
+#   while every <link rel="canonical"> and every sitemap entry says
+#   rentpondy.com. The two hostnames competed as duplicates, which is why
+#   Google was ranking the stale www copy at all.
+#
+# THE FIX — three layers
+#
+#   1. nginx  301 /index.html -> /  and  301 www -> non-www   (the block below)
+#   2. React  <Route path="/index.html" element={<Navigate to="/" replace />} />
+#             in Components/RouterPage.jsx — safety net for clients holding a
+#             cached bundle (incl. the Android WebView wrapper app) and for the
+#             case where the nginx rule is ever rolled back.
+#   3. React  the "*" catch-all now renders Components/NotFound.jsx — a real
+#             404 page (branded, noindex, links to home/Pondicherry/Chennai)
+#             instead of the word "Nopage".
+#             Components/Nopage.jsx was deliberately LEFT ALONE: Main.jsx still
+#             uses it as the default case of its tab-content switch, where
+#             full-page 404 markup and a noindex tag would be wrong.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# ⚠  THE ONE THING NOT TO GET WRONG
+#
+#   The test MUST be on $request_uri, never on $uri.
+#
+#   $request_uri is the original request-line URI and is never rewritten by
+#   internal redirects. $uri IS rewritten. The `location /` block ends with
+#   `try_files $uri $uri/ /index.html`, which every SPA deep link
+#   (/pondicherry, /detail/3691, ...) relies on — and that fallback performs an
+#   internal redirect to /index.html, which re-enters the server rewrite phase.
+#
+#   With $request_uri: a request for /pondicherry still reads "/pondicherry"
+#   after the internal redirect, so the rule does not match. Correct.
+#   With $uri: it would read "/index.html" after the internal redirect, and
+#   EVERY ROUTE ON THE SITE would 301 to "/". Total outage.
+#
+#   `if` + `return` at server level is one of the officially safe uses of `if`
+#   in nginx. Do not move these into a `location` block — a
+#   `location = /index.html` would catch the try_files fallback and cause
+#   exactly the outage described above.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# WHERE IT GOES
+#
+#   Inside the `listen 443 ssl` server block, immediately after
+#   `client_max_body_size 3000M;` and BEFORE `location / { try_files ... }`.
+#
+# ── paste from here ──────────────────────────────────────────────────────────
+
+    # ===== Canonical URL redirects (SEO) =====
+    # Google had the legacy /index.html URL indexed for this site. nginx served
+    # the SPA shell for it (200 OK), React Router then matched its catch-all "*"
+    # and the visitor saw the blank "Nopage" screen. Send it to "/" instead.
+    #
+    # $request_uri is the ORIGINAL request-line URI and is never rewritten by
+    # internal redirects, so this can NOT match the `try_files ... /index.html`
+    # fallback that every SPA deep link depends on. Do NOT change it to $uri --
+    # that would 301 every route on the site to "/".
+    if ($request_uri ~ "^/index\.html(\?|$)") {
+        return 301 https://rentpondy.com/$is_args$args;
+    }
+
+    # www -> non-www. Every <link rel="canonical"> and every sitemap entry says
+    # rentpondy.com, but www.rentpondy.com was answering 200 as well, so the two
+    # hostnames competed as duplicates and Google ranked the stale www copy.
+    if ($host = "www.rentpondy.com") {
+        return 301 https://rentpondy.com$request_uri;
+    }
+    # ===== end canonical URL redirects =====
+
+    # ===== Legacy PHP URL redirects =====
+    # Added later the same day. The pre-React PHP site's URLs are still in
+    # Google's index -- confirmed 2026-07-30 via Search Console (a referring
+    # page was www.rentpondy.com/details.php?rent_id=3516) and a site: search
+    # (search.php and recent_prop.php, both still carrying the old
+    # "RentPondy | Properties" title). PHP is not installed on this box and no
+    # .php file remains under public_html, so try_files sent every one of them
+    # to the SPA shell, React Router matched "*", and they all dead-ended on the
+    # 404 page -- the same bug as /index.html, just different URLs.
+    #
+    # These are `location` blocks rather than server-level `if`s because
+    # location matching ignores the query string, and exact (`=`) matches take
+    # priority over the regex catch-all. None can collide with the
+    # `try_files ... /index.html` fallback, which redirects to /index.html.
+
+    # Property detail: /details.php?rent_id=3516 -> /detail/3516
+    location = /details.php {
+        if ($arg_rent_id ~ "^[0-9]+$") {
+            return 301 https://rentpondy.com/detail/$arg_rent_id;
+        }
+        return 301 https://rentpondy.com/pondicherry;
+    }
+
+    location = /search.php      { return 301 https://rentpondy.com/pondicherry; }
+    location = /recent_prop.php { return 301 https://rentpondy.com/pondicherry; }
+    location = /index.php       { return 301 https://rentpondy.com/; }
+
+    # Everything else left over from the PHP site, plus constant bot probes for
+    # .php paths. No PHP runs here, so this can never shadow a live page.
+    #
+    # ⚠ The (?!PPC/) lookahead keeps this regex OFF the API proxy. `location
+    # /PPC/` is a plain prefix match, and in nginx a regex match beats a prefix
+    # match — without the lookahead any future /PPC/<x>.php endpoint would be
+    # silently 301'd to the homepage instead of reaching Node. Verified at the
+    # time: no .php route exists anywhere in the backend.
+    location ~* ^/(?!PPC/).*\.php$ {
+        return 301 https://rentpondy.com/;
+    }
+    # ===== end legacy PHP URL redirects =====
+
+# ── to here ──────────────────────────────────────────────────────────────────
+#
+#   sudo nginx -t            # must say "syntax is ok" AND "test is successful"
+#   sudo systemctl reload nginx
+#
+#   The two pre-existing warnings are expected and are NOT caused by this
+#   change (they come from ssl_rentpondy.com.conf):
+#       nginx: [warn] conflicting server name "rentpondy.com" ... ignored
+#       nginx: [warn] conflicting server name "www.rentpondy.com" ... ignored
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# VERIFY  (all confirmed passing on prod 2026-07-30)
+#
+#   NOTE: right after `systemctl reload nginx`, existing keep-alive connections
+#   are still served by the OLD workers for a few seconds, so the first request
+#   or two can show pre-change results. That is not a failure — re-run.
+#
+#   THE FIX:
+#   curl -sL -o /dev/null -w '%{url_effective} %{num_redirects}\n' \
+#        https://www.rentpondy.com/index.html
+#       -> https://rentpondy.com/ 1          (one hop, then 200)
+#
+#   curl -sI 'https://rentpondy.com/details.php?rent_id=3516' | grep -i location
+#       -> location: https://rentpondy.com/detail/3516
+#   curl -sI https://rentpondy.com/search.php | grep -i location
+#       -> location: https://rentpondy.com/pondicherry
+#
+#   The lookahead is working if this still returns JSON and not a 301:
+#   curl -s https://rentpondy.com/PPC/PPC/health
+#
+#   curl -so /dev/null -w '%{http_code} %{redirect_url}\n' https://www.rentpondy.com/
+#       -> 301 https://rentpondy.com/
+#
+#   NO REGRESSION — every one of these must stay 200. This is the check that
+#   catches the $uri mistake described above:
+#   for p in / /pondicherry /chennai /detail/3691 /plans /about /login \
+#            /mobileviews /add-form /exclusiveDetail /robots.txt /sitemap.xml \
+#            /rent/pondicherry /PPC/PPC/health /process/ /manifest.json; do
+#     printf '%-22s %s\n' "$p" \
+#       "$(curl -so /dev/null -w '%{http_code}' https://rentpondy.com$p)"
+#   done
+#
+#   (/property/3691 correctly returns 301 — that is the SEO layer's slug
+#    redirect, documented in nginx.conf.txt, not this change.)
+#
+# ROLLBACK (~5 seconds)
+#
+#   sudo cp /root/rentpondy.com.conf.bak-canonical-2026-07-30 \
+#           /etc/nginx/availablesites/rentpondy.com.conf
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# STILL TO DO BY HAND (needs the Google account — cannot be scripted)
+#
+#   The 301 is what actually fixes Google; it just takes a recrawl to show up.
+#   To speed that up, in Google Search Console:
+#     1. Make sure the https://rentpondy.com property exists (not just www).
+#     2. URL Inspection -> https://rentpondy.com/ -> "Request indexing".
+#     3. Submit https://rentpondy.com/sitemap.xml if not already submitted.
+#   Expect the stale www/index.html result to be replaced within a few days.
+# ─────────────────────────────────────────────────────────────────────────────

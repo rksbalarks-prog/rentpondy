@@ -1,0 +1,751 @@
+/* Scoped under .rcm-root so styles do not leak into the rest of the admin app. */
+
+.rcm-root {
+  --rcm-maroon: #7a1010;
+  --rcm-maroon-dark: #5e0c0c;
+  --rcm-blue: #1d4ed8;
+  --rcm-green: #1f7a3a;
+  --rcm-bg: #f5f5f7;
+  --rcm-text: #1f2937;
+  --rcm-muted: #6b7280;
+  --rcm-border: #e5e7eb;
+  --rcm-yellow: #f4c542;
+  --rcm-red-soft: #ffd4d4;
+  --rcm-orange-soft: #ffe6b3;
+  --rcm-green-soft: #c8f1d6;
+
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+  color: var(--rcm-text);
+  background: var(--rcm-bg);
+  min-height: 100vh;
+}
+
+.rcm-root *,
+.rcm-root *::before,
+.rcm-root *::after {
+  box-sizing: border-box;
+}
+
+/* ===== Header ===== */
+.rcm-header {
+  background: var(--rcm-maroon);
+  color: #fff;
+  padding: 16px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.rcm-header .rcm-brand {
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rcm-header .rcm-brand .rcm-light { font-weight: 400; opacity: 0.9; }
+
+.rcm-header .rcm-user-area {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 14px;
+}
+
+.rcm-role-badge {
+  background: #fff;
+  color: var(--rcm-maroon);
+  border-radius: 14px;
+  padding: 3px 14px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.rcm-user-area .rcm-logout {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #ffd9a0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.rcm-user-area .rcm-logout:hover { text-decoration: underline; }
+
+/* ===== Page wrapper ===== */
+.rcm-page {
+  max-width: 1180px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+.rcm-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px 28px;
+  margin-bottom: 22px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.rcm-card-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rcm-card-title .rcm-right-date {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--rcm-muted);
+  font-weight: 500;
+}
+
+/* ===== Dashboard filters ===== */
+.rcm-tabs { display: flex; gap: 10px; margin-bottom: 14px; }
+
+.rcm-tab-btn {
+  background: #ececec;
+  color: #333;
+  border: none;
+  padding: 8px 22px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+}
+.rcm-tab-btn.active { background: var(--rcm-maroon); color: #fff; }
+
+.rcm-date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 14px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+
+.rcm-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rcm-muted);
+  margin-bottom: 6px;
+}
+
+.rcm-field input[type="date"],
+.rcm-field input[type="text"],
+.rcm-field input[type="password"],
+.rcm-field input[type="tel"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--rcm-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  font-family: inherit;
+}
+
+.rcm-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 11px 22px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.rcm-btn-primary { background: var(--rcm-maroon); color: #fff; }
+.rcm-btn-primary:hover { background: var(--rcm-maroon-dark); }
+.rcm-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ===== Stat cards ===== */
+.rcm-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.rcm-stat {
+  border-radius: 12px;
+  padding: 22px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+.rcm-stat .rcm-label { font-size: 14px; letter-spacing: 1px; font-weight: 700; margin-bottom: 8px; opacity: 0.95; }
+.rcm-stat .rcm-count { font-size: 40px; font-weight: 800; }
+.rcm-stat.rcm-total      { background: var(--rcm-maroon); }
+.rcm-stat.rcm-active     { background: var(--rcm-blue); }
+.rcm-stat.rcm-interested { background: var(--rcm-green); }
+
+/* ===== Call Section ===== */
+.rcm-modes { display: flex; gap: 24px; margin-bottom: 16px; }
+.rcm-mode-option {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 600; font-size: 15px; cursor: pointer;
+}
+.rcm-mode-option input {
+  width: 18px; height: 18px;
+  accent-color: var(--rcm-maroon);
+  cursor: pointer;
+}
+
+.rcm-call-row { max-width: 460px; margin-bottom: 16px; }
+
+.rcm-call-now {
+  background: #b5b5b5;
+  color: #fff;
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-weight: 700;
+  font-size: 15px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+}
+.rcm-call-now.ready { background: var(--rcm-maroon); }
+.rcm-call-now.ready:hover { background: var(--rcm-maroon-dark); }
+.rcm-call-now:disabled { cursor: not-allowed; }
+
+/* ===== Status buttons ===== */
+.rcm-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 18px;
+}
+.rcm-status-btn {
+  border: 2px solid transparent;
+  background: #ececec;
+  padding: 14px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.15s;
+  font-family: inherit;
+}
+.rcm-status-btn:disabled { cursor: not-allowed; opacity: 0.65; }
+.rcm-status-btn.rcm-ring           { border-color: var(--rcm-yellow); color: #8a6300; }
+.rcm-status-btn.rcm-not-exist      { border-color: #f08585; color: #a01818; }
+.rcm-status-btn.rcm-not-interested { border-color: #f0b070; color: #8a5500; }
+.rcm-status-btn.rcm-interested     { border-color: #5ac281; color: #15663a; }
+.rcm-status-btn.rcm-ring:not(:disabled):hover           { background: #fff7d8; }
+.rcm-status-btn.rcm-not-exist:not(:disabled):hover      { background: var(--rcm-red-soft); }
+.rcm-status-btn.rcm-not-interested:not(:disabled):hover { background: var(--rcm-orange-soft); }
+.rcm-status-btn.rcm-interested:not(:disabled):hover     { background: var(--rcm-green-soft); }
+
+/* ===== Report table ===== */
+.rcm-report-table { width: 100%; border-collapse: collapse; }
+.rcm-report-table thead th {
+  text-align: left;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--rcm-muted);
+  font-weight: 700;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--rcm-border);
+}
+.rcm-report-table tbody td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #f1f1f1;
+  font-size: 14px;
+}
+.rcm-report-table tbody tr:hover { background: #fafafa; }
+
+.rcm-mode-pill {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rcm-mode-pill.rcm-manual    { background: #fde6ec; color: #a32d50; }
+.rcm-mode-pill.rcm-automatic { background: #e6e7ff; color: #3a3a8a; }
+
+.rcm-status-select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--rcm-border);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.rcm-empty-row td {
+  text-align: center;
+  color: var(--rcm-muted);
+  padding: 32px;
+  font-style: italic;
+}
+
+/* ===== In-table filter row (sits in <thead>) ===== */
+.rcm-report-table thead tr.rcm-filter-row th {
+  background: #fafafa;
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--rcm-border);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--rcm-text);
+}
+
+.rcm-report-table thead tr.rcm-filter-row input,
+.rcm-report-table thead tr.rcm-filter-row select {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--rcm-border);
+  border-radius: 6px;
+  font-family: inherit;
+  background: #fff;
+  min-width: 0;
+}
+
+.rcm-report-table thead tr.rcm-filter-row input:focus,
+.rcm-report-table thead tr.rcm-filter-row select:focus {
+  outline: none;
+  border-color: var(--rcm-maroon);
+  box-shadow: 0 0 0 2px rgba(122, 16, 16, 0.12);
+}
+
+/* ===== Login screen ===== */
+.rcm-login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #7a1010 0%, #3a0808 100%);
+  padding: 20px;
+}
+
+.rcm-login-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 38px 36px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.rcm-login-card .rcm-logo {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--rcm-maroon);
+  margin-bottom: 4px;
+}
+.rcm-login-card .rcm-subtitle {
+  text-align: center;
+  color: var(--rcm-muted);
+  font-size: 14px;
+  margin-bottom: 26px;
+}
+.rcm-login-card .rcm-field { margin-bottom: 14px; }
+.rcm-login-card .rcm-btn-primary {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  margin-top: 6px;
+}
+
+.rcm-login-error {
+  background: #ffe1e1;
+  color: #a01818;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.rcm-hint {
+  font-size: 12px;
+  color: var(--rcm-muted);
+  text-align: center;
+  margin-top: 14px;
+}
+
+/* ===== Toast ===== */
+.rcm-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #222;
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.25s, top 0.25s;
+  pointer-events: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+.rcm-toast.show { opacity: 1; top: 36px; }
+.rcm-toast.success { background: #1f7a3a; }
+.rcm-toast.error   { background: #a01818; }
+
+@media (max-width: 720px) {
+  .rcm-stats-grid  { grid-template-columns: 1fr; }
+  .rcm-status-grid { grid-template-columns: repeat(2, 1fr); }
+  .rcm-date-row    { grid-template-columns: 1fr; }
+  .rcm-report-table thead { display: none; }
+  .rcm-report-table tbody tr {
+    display: block;
+    margin-bottom: 14px;
+    border: 1px solid var(--rcm-border);
+    border-radius: 10px;
+    padding: 8px 12px;
+  }
+  .rcm-report-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    border: none;
+    padding: 8px 0;
+  }
+  .rcm-report-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--rcm-muted);
+  }
+}
+
+/* =====================================================================
+   ADMIN PAGE (RpWfhAdmin.jsx) — extends the rcm- theme above.
+   Same scope (.rcm-root) so the page reuses the look + colors.
+   ===================================================================== */
+
+/* Distinguish the admin header from the staff header. */
+.rcm-root.rcm-admin .rcm-header { background: #3a0808; }
+.rcm-root.rcm-admin .rcm-role-badge { color: #3a0808; }
+
+/* Admin section grids */
+.rcm-admin-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 22px;
+}
+
+.rcm-form-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 10px;
+}
+
+.rcm-form-row textarea,
+.rcm-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--rcm-border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  min-height: 90px;
+  resize: vertical;
+}
+
+/* Compact list / table for admin sections */
+.rcm-list {
+  border: 1px solid var(--rcm-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.rcm-list-row {
+  display: grid;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f1f1;
+  font-size: 14px;
+  gap: 10px;
+}
+.rcm-list-row:last-child { border-bottom: none; }
+.rcm-list-row.rcm-list-header {
+  background: #fafafa;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--rcm-muted);
+  text-transform: uppercase;
+}
+
+.rcm-queue-row    { grid-template-columns: 1fr auto auto; }
+.rcm-staff-row    { grid-template-columns: 1.2fr 1.1fr 0.8fr auto auto auto; }
+.rcm-allcalls-row { grid-template-columns: 1.4fr 1fr 1fr 0.8fr 1fr; }
+
+.rcm-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.rcm-pill-admin    { background: #4a0a0a; color: #fff; }
+.rcm-pill-staff    { background: #e6e7ff; color: #3a3a8a; }
+.rcm-pill-active   { background: #c8f1d6; color: #15663a; }
+.rcm-pill-inactive { background: #ffd4d4; color: #a01818; }
+
+.rcm-btn-sm {
+  border: 1px solid var(--rcm-border);
+  background: #fff;
+  color: var(--rcm-text);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.rcm-btn-sm:hover { background: #f5f5f7; }
+.rcm-btn-sm.rcm-danger { color: #a01818; border-color: #f0b0b0; }
+.rcm-btn-sm.rcm-danger:hover { background: #ffe1e1; }
+.rcm-btn-sm.rcm-primary { color: #fff; background: var(--rcm-maroon); border-color: var(--rcm-maroon); }
+.rcm-btn-sm.rcm-primary:hover { background: var(--rcm-maroon-dark); }
+
+.rcm-muted { color: var(--rcm-muted); font-size: 12px; }
+
+@media (max-width: 980px) {
+  .rcm-admin-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .rcm-queue-row    { grid-template-columns: 1fr auto; }
+  .rcm-queue-row .rcm-muted { display: none; }
+  .rcm-staff-row    { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .rcm-allcalls-row { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .rcm-list-header  { display: none; }
+}
+
+/* =====================================================================
+   MODAL DIALOG — used by the "Interested" popup on the staff page and
+   the read-only details viewer in the report.
+   ===================================================================== */
+
+.rcm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+  padding: 20px;
+  animation: rcm-fade-in 0.15s ease-out;
+}
+
+.rcm-modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px 28px 20px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+  animation: rcm-pop 0.18s ease-out;
+}
+
+.rcm-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--rcm-maroon);
+}
+
+.rcm-modal-sub {
+  font-size: 13px;
+  color: var(--rcm-muted);
+  margin-bottom: 18px;
+}
+
+.rcm-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.rcm-modal-grid .rcm-field { margin: 0; }
+
+.rcm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.rcm-detail-link {
+  margin-left: 8px;
+  background: none;
+  border: none;
+  color: var(--rcm-maroon);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 2px 4px;
+  text-decoration: underline;
+}
+.rcm-detail-link:hover { color: var(--rcm-maroon-dark); }
+
+.rcm-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 18px;
+  margin-top: 10px;
+}
+.rcm-detail-grid > div { font-size: 14px; }
+.rcm-detail-grid .rcm-detail-label {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--rcm-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.rcm-detail-grid .rcm-detail-value { font-weight: 600; color: var(--rcm-text); }
+
+@keyframes rcm-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rcm-pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+@media (max-width: 540px) {
+  .rcm-modal-grid, .rcm-detail-grid { grid-template-columns: 1fr; }
+}
+
+/* =====================================================================
+   ADMIN SIDEBAR LAYOUT — used by RpWfhAdmin.jsx
+   ===================================================================== */
+
+.rcm-admin-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: calc(100vh - 64px); /* below the header */
+}
+
+.rcm-sidebar {
+  background: #fff;
+  border-right: 1px solid var(--rcm-border);
+  padding: 18px 0;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.rcm-sidebar-section {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--rcm-muted);
+  padding: 12px 22px 6px;
+}
+
+.rcm-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rcm-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--rcm-text);
+  border: none;
+  background: transparent;
+  border-left: 3px solid transparent;
+  text-align: left;
+  font-family: inherit;
+  transition: 0.15s;
+  width: 100%;
+}
+
+.rcm-sidebar-item:hover {
+  background: #f5f5f7;
+}
+
+.rcm-sidebar-item.active {
+  background: #fde6ec;
+  color: var(--rcm-maroon);
+  border-left-color: var(--rcm-maroon);
+}
+
+.rcm-sidebar-item .rcm-side-badge {
+  margin-left: auto;
+  background: #ececec;
+  color: #444;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.rcm-sidebar-item.active .rcm-side-badge {
+  background: var(--rcm-maroon);
+  color: #fff;
+}
+
+.rcm-content {
+  padding: 24px 28px;
+  min-width: 0; /* allow children to shrink for horizontal scroll */
+}
+
+.rcm-content .rcm-card { margin-bottom: 18px; }
+
+@media (max-width: 900px) {
+  .rcm-admin-shell {
+    grid-template-columns: 1fr;
+  }
+  .rcm-sidebar {
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid var(--rcm-border);
+    padding: 8px 0;
+  }
+  .rcm-sidebar-section { display: none; }
+  .rcm-sidebar-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 0 8px;
+  }
+  .rcm-sidebar-item {
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    padding: 10px 14px;
+  }
+  .rcm-sidebar-item.active {
+    background: transparent;
+    border-bottom-color: var(--rcm-maroon);
+  }
+  .rcm-content {
+    padding: 18px 16px;
+  }
+}
