@@ -170,96 +170,36 @@ const SendMessageModal = ({ onClose, onSent }) => {
 };
 
 /* ── Credentials Modal ───────────────────────────────────────────────────────── */
-const CredentialsModal = ({ onClose, onSaved }) => {
-  const [apiKey, setApiKey] = useState("");
-  const [accessToken, setAccessToken] = useState("");
-  const [loading, setLoading] = useState(false);
+// WhatsApp now goes through the SmartGrowth AI campaign API, whose credentials
+// live in the backend .env (SMARTGROWTH_TOKEN / SMARTGROWTH_API_CODE) — they are
+// never editable from the browser. This modal is therefore read-only: it reports
+// whether the server is configured, via GET /api/whatsapp-status.
+const CredentialsModal = ({ onClose }) => {
+  const [status, setStatus] = useState(null);
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
-    fetchCredentials();
+    fetchStatus();
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  const fetchCredentials = async () => {
+  const fetchStatus = async () => {
     try {
-      console.log("🔍 Fetching credentials from:", `${API_BASE}/wasender-credentials`);
-      const response = await axios.get(
-        `${API_BASE}/wasender-credentials`,
-        { timeout: 10000 }
-      );
-
-      console.log("✅ Credentials response:", response.data);
-
-      if (response.data?.success && response.data?.data) {
-        setApiKey(response.data.data.apiKey || "");
-        setAccessToken(response.data.data.personalAccessToken || "");
-        setError("");
-      } else {
-        console.warn("⚠️ Unexpected response format:", response.data);
-        setError("Failed to load credentials: Invalid response format");
-      }
+      const response = await axios.get(`${API_BASE}/api/whatsapp-status`, { timeout: 10000 });
+      setStatus(response.data);
+      setError("");
     } catch (err) {
-      console.error("❌ Error fetching credentials:", err);
-      console.error("Response data:", err.response?.data);
-      console.error("Request URL:", err.config?.url);
-      const errorMsg = err.response?.data?.message || err.message || "Failed to load credentials";
+      const errorMsg = err.response?.data?.error || err.message || "Failed to load status";
       setError(`❌ ${errorMsg}`);
     } finally {
       setIsFetching(false);
     }
   };
 
-  const handleSave = async () => {
-    if (!apiKey.trim()) return setError("⚠️ API Key is required.");
-    if (!accessToken.trim()) return setError("⚠️ Personal Access Token is required.");
-
-    setError("");
-    setSuccess("");
-    setLoading(true);
-
-    try {
-      console.log("💾 Saving credentials to database at:", `${API_BASE}/wasender-credentials`);
-      const response = await axios.post(
-        `${API_BASE}/wasender-credentials`,
-        {
-          apiKey: apiKey.trim(),
-          personalAccessToken: accessToken.trim(),
-          webhookSecret: ""
-        },
-        { headers: { "Content-Type": "application/json" }, timeout: 15000 }
-      );
-
-      console.log("✅ Save response:", response.data);
-
-      if (response.data?.success) {
-        setSuccess("✅ Credentials saved to database! All future messages will use these credentials.");
-        setIsEditing(false);
-        setTimeout(() => { onSaved(); onClose(); }, 1500);
-      } else {
-        setError(`❌ ${response.data?.message || "Failed to save credentials"}`);
-      }
-    } catch (err) {
-      console.error("❌ Error saving credentials:", err);
-      console.error("Response data:", err.response?.data);
-      console.error("Request URL:", err.config?.url);
-      const msg = err.response?.data?.message || err.message || "Failed to save credentials";
-      setError(`❌ ${msg}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && e.ctrlKey && !loading) handleSave();
-  };
-
   return (
-    <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && !loading && onClose()}>
+    <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={styles.modal}>
         <div style={styles.modalHeader}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -269,96 +209,56 @@ const CredentialsModal = ({ onClose, onSaved }) => {
               </svg>
             </div>
             <div>
-              <h2 style={styles.modalTitle}>Wasender API Credentials</h2>
-              <p style={styles.modalSub}>Manage your API keys and tokens</p>
+              <h2 style={styles.modalTitle}>WhatsApp API Status</h2>
+              <p style={styles.modalSub}>SmartGrowth AI campaign API</p>
             </div>
           </div>
-          <button onClick={onClose} style={styles.closeBtn} disabled={loading}>×</button>
+          <button onClick={onClose} style={styles.closeBtn}>×</button>
         </div>
 
         <div style={styles.modalBody}>
           {isFetching ? (
             <div style={{ padding: "40px 20px", textAlign: "center" }}>
               <div style={styles.spinner} />
-              <p style={{ color: "#718096", marginTop: 12 }}>Loading credentials...</p>
+              <p style={{ color: "#718096", marginTop: 12 }}>Loading status...</p>
             </div>
-          ) : !isEditing ? (
+          ) : (
             <>
               <div style={styles.credentialDisplay}>
                 <div style={styles.credField}>
-                  <label style={styles.credLabel}>API Key</label>
-                  <div style={styles.credValue}>
-                    {apiKey ? "••••••••" + apiKey.slice(-4) : "Not set"}
+                  <label style={styles.credLabel}>Provider</label>
+                  <div style={styles.credValue}>{status?.provider || "—"}</div>
+                </div>
+                <div style={styles.credField}>
+                  <label style={styles.credLabel}>Endpoint</label>
+                  <div style={{ ...styles.credValue, wordBreak: "break-all" }}>
+                    {status?.endpoint || "—"}
                   </div>
                 </div>
                 <div style={styles.credField}>
-                  <label style={styles.credLabel}>Personal Access Token</label>
+                  <label style={styles.credLabel}>Default Template ID</label>
+                  <div style={styles.credValue}>{status?.defaultTemplateId || "—"}</div>
+                </div>
+                <div style={styles.credField}>
+                  <label style={styles.credLabel}>Credentials</label>
                   <div style={styles.credValue}>
-                    {accessToken ? "••••••••" + accessToken.slice(-4) : "Not set"}
+                    {status?.configured ? "✅ Configured on the server" : "⚠️ Not set"}
                   </div>
                 </div>
               </div>
+              {!isFetching && !status?.configured && !error && (
+                <p style={styles.hint}>
+                  Set SMARTGROWTH_TOKEN and SMARTGROWTH_API_CODE in the backend .env,
+                  then restart the server.
+                </p>
+              )}
               {error && <div style={styles.errorBox}>{error}</div>}
-              {success && <div style={styles.successBox}>{success}</div>}
-            </>
-          ) : (
-            <>
-              <div style={styles.field}>
-                <label style={styles.label}>
-                  API Key <span style={{ color: "#e53e3e" }}>*</span>
-                </label>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Enter your Wasender API Key"
-                  style={styles.input}
-                  disabled={loading}
-                />
-                <p style={styles.hint}>Your API key for Wasender service</p>
-              </div>
-
-              <div style={styles.field}>
-                <label style={styles.label}>
-                  Personal Access Token <span style={{ color: "#e53e3e" }}>*</span>
-                </label>
-                <input
-                  type="password"
-                  value={accessToken}
-                  onChange={(e) => setAccessToken(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Enter your Personal Access Token"
-                  style={styles.input}
-                  disabled={loading}
-                />
-                <p style={styles.hint}>Your personal access token for authentication</p>
-              </div>
-
-              {error && <div style={styles.errorBox}>{error}</div>}
-              {success && <div style={styles.successBox}>{success}</div>}
             </>
           )}
         </div>
 
         <div style={styles.modalFooter}>
-          <button onClick={onClose} style={styles.cancelBtn} disabled={loading || isFetching}>
-            {isEditing ? "Cancel" : "Close"}
-          </button>
-          {!isEditing ? (
-            <button onClick={() => { setIsEditing(true); setError(""); }} style={styles.editBtn} disabled={loading || isFetching}>
-              ✏️ Edit Credentials
-            </button>
-          ) : (
-            <button onClick={handleSave} style={styles.sendBtn} disabled={loading}>
-              {loading ? (
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={styles.spinner} /> Saving...
-                </span>
-              ) : (
-                "Save Credentials"
-              )}
-            </button>
-          )}
+          <button onClick={onClose} style={styles.cancelBtn}>Close</button>
         </div>
       </div>
     </div>
@@ -620,11 +520,6 @@ const PMLogin = () => {
     setTimeout(() => setToast(""), 3500);
   };
 
-  const handleCredentialsSaved = () => {
-    setToast("✓ Credentials updated successfully!");
-    setTimeout(() => setToast(""), 3500);
-  };
-
   if (!isAuthenticated) {
     return <LoginForm onLoginSuccess={handleLoginSuccess} />;
   }
@@ -729,7 +624,7 @@ const PMLogin = () => {
       )}
 
       {showCredsModal && (
-        <CredentialsModal onClose={() => setShowCredsModal(false)} onSaved={handleCredentialsSaved} />
+        <CredentialsModal onClose={() => setShowCredsModal(false)} />
       )}
     </div>
   );

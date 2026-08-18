@@ -350,7 +350,7 @@ const officeMobileMap = require('../utils/officeMobileMap');
 const { getOfficeOtpNumbers } = require('../utils/otpNumbers'); // DB-backed OTP recipients (admin panel), file fallback
 const { sendOtpSms } = require('../utils/smsSender'); // ✅ Correct import
 const { generateOTP, isWithinAllowedTime } = require('../utils/helpers');
-const axios = require('axios');
+const whatsapp = require('../services/whatsapp'); // SmartGrowth AI WhatsApp campaign API
 const AdminLogin = require('../Admin/AdminModel')
 const firebaseAdmin = require('../config/firebaseAdmin'); // verifies Firebase ID tokens
 
@@ -756,47 +756,21 @@ router.post('/admin-creates', async (req, res) => {
     
     const whatsappMessage = `🎉 New Admin Created\n\n📋 Details:\nName: ${savedUser.name}\nRole: ${savedUser.role}\nOffice: ${savedUser.office}\nMobile: ${savedUser.mobile}\n\n✅ Created by: ${createdByAdmin}\n\n⏰ Created on: ${new Date().toLocaleString()}`;
 
-    // Send message to all ADMIN numbers (Asynchronously - no await to speed up response)
-    adminNumbers.forEach((number) => {
-      try {
-        const phoneWithCountry = number.startsWith('91') || number.startsWith('+') ? number : '91' + number;
-        // ─── OneMSG (commented out — replaced by Meta WhatsApp Cloud API) ───
-        // axios.post(
-        //   'https://app.onemsg.io/api/create-message',
-        //   new URLSearchParams({
-        //     appkey: process.env.ONEMSG_APPKEY,
-        //     authkey: process.env.ONEMSG_AUTHKEY,
-        //     to: phoneWithCountry,
-        //     message: whatsappMessage
-        //   }),
-        //   {
-        //     headers: {
-        //       'Content-Type': 'application/x-www-form-urlencoded'
-        //     }
-        //   }
-        // ).catch(...);
-        axios.post(
-          `https://graph.facebook.com/${process.env.META_API_VERSION || 'v21.0'}/${process.env.META_PHONE_NUMBER_ID}/messages`,
-          {
-            messaging_product: 'whatsapp',
-            recipient_type: 'individual',
-            to: String(phoneWithCountry).replace(/\D/g, ''),
-            type: 'text',
-            text: { preview_url: false, body: whatsappMessage }
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${process.env.META_WHATSAPP_TOKEN}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        ).catch((msgErr) => {
-          console.error(`Failed to send WhatsApp to ${number}:`, msgErr.message);
+    // One campaign call covers every ADMIN number. Template-only provider, so
+    // `whatsappMessage` is logged for the audit trail but not transmitted —
+    // recipients get the approved template (SMARTGROWTH_NOTIFY_TEMPLATE_ID).
+    if (adminNumbers.length > 0) {
+      console.log(`ℹ️ [AdminRouter] new-admin notify (body not delivered): ${whatsappMessage.replace(/\s+/g, ' ').slice(0, 160)}`);
+      whatsapp
+        .sendCampaign({
+          phoneNumbers: adminNumbers,
+          campaignName: 'newadmin',
+          templateId: whatsapp.TEMPLATES.notify(),
+        })
+        .catch((msgErr) => {
+          console.error('Failed to send WhatsApp to admin numbers:', msgErr.message);
         });
-      } catch (msgErr) {
-        console.error(`Error setting up WhatsApp to ${number}:`, msgErr.message);
-      }
-    });
+    }
 
     res.status(201).json(savedUser);
   } catch (err) {

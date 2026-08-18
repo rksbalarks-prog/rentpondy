@@ -2,6 +2,7 @@ import express from "express";
 import axios from "axios";
 import cron from "node-cron";
 import moment from "moment";
+import whatsapp from "./services/whatsapp.js";
 
 const router = express.Router();
 
@@ -12,45 +13,19 @@ const REPORT_RECIPIENT = ["917094422941", "919944244409", "918220437673"];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// Meta WhatsApp Cloud API endpoint (built from env)
-const META_API_URL = () =>
-  `https://graph.facebook.com/${process.env.META_API_VERSION || "v21.0"}/${process.env.META_PHONE_NUMBER_ID}/messages`;
-
-// Send a free-form text message via Meta WhatsApp Cloud API.
-// NOTE: free-form text only delivers inside the 24h customer-service window.
-// Business-initiated sends require an approved template (switch `type` to "template").
-async function sendMetaWhatsAppText(to, message) {
-  return axios.post(
-    META_API_URL(),
-    {
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to: String(to).replace(/\D/g, ""),
-      type: "text",
-      text: { preview_url: false, body: message },
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.META_WHATSAPP_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
-}
-
-async function sendWhatsAppMessage(to, message) {
-  // ─── OneMSG (commented out — replaced by Meta WhatsApp Cloud API) ───
-  // await axios.post(
-  //   "https://app.onemsg.io/api/create-message",
-  //   new URLSearchParams({
-  //     appkey: process.env.ONEMSG_APPKEY,
-  //     authkey: process.env.ONEMSG_AUTHKEY,
-  //     to,
-  //     message,
-  //   }),
-  //   { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-  // );
-  await sendMetaWhatsAppText(to, message);
+// Send a WhatsApp message via the SmartGrowth AI campaign API.
+//
+// ⚠ SmartGrowth is TEMPLATE-ONLY: the payload has no message body, so `message`
+// is logged for the audit trail but the recipient receives the approved
+// template. Give each flow its own approved template via
+// SMARTGROWTH_REPORT_TEMPLATE_ID / SMARTGROWTH_NOTIFY_TEMPLATE_ID when you want
+// different wording.
+async function sendWhatsAppMessage(to, message, opts = {}) {
+  return whatsapp.sendCampaign({
+    phoneNumbers: [to],
+    campaignName: opts.campaignName || "notify",
+    templateId: opts.templateId || whatsapp.TEMPLATES.notify(),
+  });
 }
 
 // ─── Scheduled WhatsApp Greeting Messages ────────────────────────────────────
@@ -341,7 +316,10 @@ Date: ${dateLabel}
   for (const number of recipients) {
     for (let i = 0; i < messageParts.length; i++) {
       try {
-        await sendWhatsAppMessage(number, messageParts[i]);
+        await sendWhatsAppMessage(number, messageParts[i], {
+          campaignName: "adminreport",
+          templateId: whatsapp.TEMPLATES.report(),
+        });
         console.log(`[${new Date().toISOString()}] Report part ${i + 1}/${messageParts.length} sent to ${number}`);
       } catch (sendErr) {
         console.error(`[${new Date().toISOString()}] Failed to send part ${i + 1} to ${number}:`, sendErr.message);
@@ -387,22 +365,11 @@ router.get("/rent-yesterday-report", async (req, res) => {
 // Send message to individual
 router.post("/send-message", async (req, res) => {
   try {
-    const { to, message } = req.body;
-    // ─── OneMSG (commented out — replaced by Meta WhatsApp Cloud API) ───
-    // const response = await axios.post(
-    //   "https://app.onemsg.io/api/create-message",
-    //   new URLSearchParams({
-    //     appkey: process.env.ONEMSG_APPKEY,
-    //     authkey: process.env.ONEMSG_AUTHKEY,
-    //     to,
-    //     message,
-    //   }),
-    //   { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-    // );
-    const response = await sendMetaWhatsAppText(to, message);
-    res.json(response.data);
+    const { to, message, campaignName, templateId } = req.body;
+    const result = await sendWhatsAppMessage(to, message, { campaignName, templateId });
+    res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json(err.response?.data || { error: err.message });
   }
 });
 
@@ -413,7 +380,11 @@ router.post("/send-message", async (req, res) => {
 //       → Cron drains queue ONE message at a time
 //       → Random delay 30-200s between each send
 //       → Pick random template for that category
-//       → Fill variables → Send via OneMSG
+//       → Fill variables → Send via the SmartGrowth AI campaign API
+//
+// NOTE: the composed text below is now audit-log only. SmartGrowth delivers an
+// approved template, so the wording a recipient sees comes from
+// SMARTGROWTH_NOTIFY_TEMPLATE_ID, not from these strings.
 //
 // The existing POST /send-message route is NOT changed.
 // ─────────────────────────────────────────────────────────────────────────────

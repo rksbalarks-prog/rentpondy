@@ -1,60 +1,26 @@
 const express = require("express");
 const router = express.Router();
 const PM = require("./PMModel");
-const { createWasender } = require("wasenderapi");
+const whatsapp = require("../services/whatsapp");
 require("dotenv/config");
 
-// ── Wasender initialization ──────────────────────────────────────────────────
-let wasender = null;
-
-function initializeWasender() {
-  if (wasender) return wasender;
-
-  const apiKey = process.env.WASENDER_API_KEY;
-  const accessToken = process.env.WASENDER_PERSONAL_ACCESS_TOKEN;
-  const webhookSecret = process.env.WASENDER_WEBHOOK_SECRET;
-
-  if (!apiKey || !accessToken) {
-    console.error(
-      "❌ Wasender initialization failed: Missing WASENDER_API_KEY or WASENDER_PERSONAL_ACCESS_TOKEN in .env"
-    );
-    return null;
-  }
-
-  try {
-    wasender = createWasender(
-      apiKey,
-      accessToken,
-      undefined,
-      undefined,
-      {
-        enabled: true,
-        maxRetries: 3
-      },
-      webhookSecret
-    );
-    console.log("✅ Wasender initialized successfully");
-  } catch (err) {
-    console.error("❌ Failed to initialize Wasender:", err.message);
-  }
-
-  return wasender;
-}
-
-// ── Verify credentials on startup ─────────────────────────────────────────────
-if (!process.env.WASENDER_API_KEY || !process.env.WASENDER_PERSONAL_ACCESS_TOKEN) {
-  console.error("❌ MISSING ENV VARS: WASENDER_API_KEY or WASENDER_PERSONAL_ACCESS_TOKEN not set in .env");
+// ── SmartGrowth AI credentials check on startup ──────────────────────────────
+if (!whatsapp.isConfigured()) {
+  console.error("❌ MISSING ENV VARS: SMARTGROWTH_TOKEN or SMARTGROWTH_API_CODE not set in .env");
 } else {
-  console.log("✅ Wasender credentials found, initializing...");
-  initializeWasender();
+  console.log("✅ SmartGrowth AI WhatsApp credentials found (PM single send)");
 }
 
 /**
  * POST /send-text
+ *
+ * NOTE: SmartGrowth is a template-only campaign API — the `text` body is stored
+ * for the audit trail but the recipient receives the approved template. Point
+ * this flow at its own template with SMARTGROWTH_NOTIFY_TEMPLATE_ID.
  */
 router.post("/send-text", async (req, res) => {
   try {
-    const { to, text } = req.body;
+    const { to, text, campaignName, templateId } = req.body;
 
     // Validation
     if (!to || !String(to).trim()) {
@@ -64,18 +30,8 @@ router.post("/send-text", async (req, res) => {
       return res.status(400).json({ success: false, message: "Message content is required" });
     }
 
-    // Format phone number
-    let phoneNumber = String(to).trim().replace(/[\s\-()]/g, "");
-    if (!phoneNumber.startsWith("+")) {
-      if (phoneNumber.startsWith("91") && phoneNumber.length === 12) {
-        phoneNumber = "+" + phoneNumber;
-      } else {
-        phoneNumber = "+91" + phoneNumber.slice(-10);
-      }
-    }
-
-    const digitsOnly = phoneNumber.replace(/\D/g, "");
-    if (digitsOnly.length < 10) {
+    const phoneNumber = whatsapp.normalizePhone(to);
+    if (!phoneNumber) {
       return res.status(400).json({ success: false, message: "Invalid phone number format" });
     }
 
@@ -84,44 +40,35 @@ router.post("/send-text", async (req, res) => {
     let messageId = null;
     let deliveryStatus = "failed";
     let errorMessage = null;
-    let wasenderResponse = null;
+    let apiResponse = null;
 
     try {
-      const wasenderClient = initializeWasender();
-
-      if (!wasenderClient) {
+      if (!whatsapp.isConfigured()) {
         return res.status(503).json({
           success: false,
-          message: "Wasender service is not initialized. Check your environment variables."
+          message: "WhatsApp is not configured. Set SMARTGROWTH_TOKEN and SMARTGROWTH_API_CODE in .env."
         });
       }
 
-      const payload = {
-        messageType: "text",
-        to: phoneNumber,
-        text: text.trim()
-      };
+      console.log("📤 Sending to SmartGrowth AI campaign API...");
 
-      console.log("📤 Sending to Wasender API...");
+      apiResponse = await whatsapp.sendCampaign({
+        phoneNumbers: [phoneNumber],
+        campaignName: campaignName || "pmsingle",
+        templateId: templateId || whatsapp.TEMPLATES.notify(),
+      });
 
-      wasenderResponse = await wasenderClient.send(payload);
-
-      console.log("✅ Wasender Response:", JSON.stringify(wasenderResponse, null, 2));
-
-      if (wasenderResponse && wasenderResponse.response) {
-        messageId = wasenderResponse.response.messageId || wasenderResponse.response.id || null;
-        deliveryStatus = "sent";
-        console.log("✅ Message sent successfully! ID:", messageId);
-      } else {
-        deliveryStatus = "failed";
-        errorMessage = "Unexpected response from Wasender API";
-        console.error("❌ Unexpected response:", errorMessage);
-      }
+      messageId = apiResponse.campaignName;
+      deliveryStatus = "sent";
+      console.log("✅ Message sent successfully! Campaign:", messageId);
     } catch (apiErr) {
-      console.error("❌ Wasender API Error:", apiErr.message);
-      console.error("❌ Error Details:", apiErr);
+      console.error("❌ SmartGrowth API Error:", apiErr.message);
       deliveryStatus = "failed";
-      errorMessage = apiErr.message || "Failed to connect to WhatsApp service";
+      errorMessage =
+        apiErr.response?.data?.message ||
+        (apiErr.response?.data && JSON.stringify(apiErr.response.data).slice(0, 300)) ||
+        apiErr.message ||
+        "Failed to connect to WhatsApp service";
     }
 
     // Save to DB
@@ -134,8 +81,8 @@ router.post("/send-text", async (req, res) => {
       sentAt: new Date(),
       errorMessage: deliveryStatus === "failed" ? errorMessage : null,
       metadata: {
-        api: "wasender",
-        wasenderResponse: wasenderResponse || null,
+        api: "smartgrowthai",
+        apiResponse: apiResponse || null,
         originalRequest: { to, text }
       }
     });

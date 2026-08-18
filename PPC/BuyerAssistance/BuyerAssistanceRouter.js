@@ -12,6 +12,8 @@ const BuyerPlan = require('../BuyerPlan/BuyerModel');
 const { baseFilter, resolveBaseFromAddress, resolveBaseForSave, normalizeBase } = require('../utils/baseFilter'); // city-base (PY/CH) filtering
 
 //WHATSAPP API TO SEND MATCHED TENANTS AND OWNER
+const whatsapp = require("../services/whatsapp"); // SmartGrowth AI campaign API
+// Still used by the loopback fetch in /fetch-all-matched-datas-rent (not WhatsApp).
 const request = require("request");
 
 // Helper function to mask phone number (e.g., 9108632441 becomes 91086xxxxx41)
@@ -25,51 +27,18 @@ const maskPhoneNumber = (phoneNumber) => {
   return masked;
 };
 
-// Helper function to send WhatsApp message
-const sendWhatsAppMessage = (toNumber, message) => {
-  return new Promise((resolve, reject) => {
-    const cleanedNumber = toNumber.replace(/\D/g, '');
-    // Add 91 prefix if not already present
-    const finalNumber = cleanedNumber.startsWith('91') ? cleanedNumber : '91' + cleanedNumber;
-    
-// ─── OneMSG (commented out — replaced by Meta WhatsApp Cloud API) ───
-// const options = {
-//   method: "POST",
-//   url: "https://app.onemsg.io/api/sendFileUrl",
-//   headers: {
-//     "Content-Type": "application/json"
-//   },
-//   body: JSON.stringify({
-//     appkey: process.env.ONEMSG_APPKEY,
-//     authkey: process.env.ONEMSG_AUTHKEY,
-//     to: finalNumber,
-//     message: message,
-//     // url: "https://www.rentpondy.com"
-//   })
-// };
-const options = {
-  method: "POST",
-  url: `https://graph.facebook.com/${process.env.META_API_VERSION || "v21.0"}/${process.env.META_PHONE_NUMBER_ID}/messages`,
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${process.env.META_WHATSAPP_TOKEN}`
-  },
-  body: JSON.stringify({
-    messaging_product: "whatsapp",
-    recipient_type: "individual",
-    to: finalNumber,
-    type: "text",
-    text: { preview_url: false, body: message }
-  })
-};
-
-    request(options, function (error, response, body) {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(response.body);
-      }
-    });
+// Helper function to send a WhatsApp message via the SmartGrowth AI campaign API.
+//
+// ⚠ Template-only provider: `message` (which carries the masked counterparty
+// number) cannot be transmitted — the recipient receives the approved template.
+// Point this flow at its own template with SMARTGROWTH_NOTIFY_TEMPLATE_ID once
+// a "matched" template that renders the number is approved.
+const sendWhatsAppMessage = async (toNumber, message) => {
+  console.log(`ℹ️ [BuyerAssistance] body not delivered (template-only): ${String(message).slice(0, 120)}`);
+  return whatsapp.sendCampaign({
+    phoneNumbers: [toNumber],
+    campaignName: "matched",
+    templateId: whatsapp.TEMPLATES.notify(),
   });
 };
 

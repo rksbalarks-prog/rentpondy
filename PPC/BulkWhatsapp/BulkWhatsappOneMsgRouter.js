@@ -1,48 +1,34 @@
 const express = require("express");
-const axios = require("axios");
+const whatsapp = require("../services/whatsapp"); // SmartGrowth AI campaign API
 
 const router = express.Router();
 
+// POST /bulk-message
+// Body: { to | phoneNumbers[], message?, campaignName?, templateId? }
+//
+// ⚠ Template-only provider: `message` is not transmitted. Recipients receive the
+// approved template (SMARTGROWTH_BULK_TEMPLATE_ID, or `templateId` in the body).
 router.post("/bulk-message", async (req, res) => {
   try {
-    const { to, message } = req.body;
+    const { to, phoneNumbers, message, campaignName, templateId } = req.body;
 
-    // ─── OneMSG (commented out — replaced by Meta WhatsApp Cloud API) ───
-    // const response = await axios.post(
-    //   "https://app.onemsg.io/api/create-message",
-    //   new URLSearchParams({
-    //     appkey: process.env.BULK_ONEMSG_APPKEY,
-    //     authkey: process.env.BULK_ONEMSG_AUTHKEY,
-    //     to,
-    //     message
-    //   }),
-    //   {
-    //     headers: {
-    //       "Content-Type": "application/x-www-form-urlencoded"
-    //     }
-    //   }
-    // );
-    // Bulk sender falls back to the main Meta number/token if META_BULK_* are unset.
-    const response = await axios.post(
-      `https://graph.facebook.com/${process.env.META_API_VERSION || "v21.0"}/${process.env.META_BULK_PHONE_NUMBER_ID || process.env.META_PHONE_NUMBER_ID}/messages`,
-      {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: String(to).replace(/\D/g, ""),
-        type: "text",
-        text: { preview_url: false, body: message }
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.META_BULK_WHATSAPP_TOKEN || process.env.META_WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
+    const recipients = Array.isArray(phoneNumbers) ? phoneNumbers : to ? [to] : [];
+    if (recipients.length === 0) {
+      return res.status(400).json({ error: 'Provide "to" or a "phoneNumbers" array' });
+    }
+    if (message) {
+      console.log(`ℹ️ [BulkMessage] body not delivered (template-only): ${String(message).slice(0, 120)}`);
+    }
 
-    res.json(response.data);
+    const result = await whatsapp.sendCampaign({
+      phoneNumbers: recipients,
+      campaignName: campaignName || "bulkmessage",
+      templateId: templateId || whatsapp.TEMPLATES.bulk(),
+    });
+
+    res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json(err.response?.data || { error: err.message });
   }
 });
 

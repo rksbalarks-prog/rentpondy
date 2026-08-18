@@ -1,61 +1,36 @@
 const express = require("express");
 const router = express.Router();
 const PMBulk = require("./PMBulkModel");
-const { createWasender } = require("wasenderapi");
+const whatsapp = require("../services/whatsapp");
 require("dotenv/config");
 
-// ── Wasender initialization ──────────────────────────────────────────────────
-let wasender = null;
+// How many numbers go into a single SmartGrowth campaign call. The API takes an
+// array, so one call covers the whole chunk instead of one call per recipient.
+const CHUNK_SIZE = Number(process.env.SMARTGROWTH_BATCH_SIZE) || 500;
+// Pause between chunks so a large list does not hammer the provider.
+const CHUNK_DELAY_MS = Number(process.env.SMARTGROWTH_BATCH_DELAY_MS) || 2000;
 
-function initializeWasender() {
-  if (wasender) return wasender;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  const apiKey = process.env.WASENDER_API_KEY;
-  const accessToken = process.env.WASENDER_PERSONAL_ACCESS_TOKEN;
-  const webhookSecret = process.env.WASENDER_WEBHOOK_SECRET;
-
-  if (!apiKey || !accessToken) {
-    console.error(
-      "❌ Wasender initialization failed: Missing WASENDER_API_KEY or WASENDER_PERSONAL_ACCESS_TOKEN in .env"
-    );
-    return null;
-  }
-
-  try {
-    wasender = createWasender(
-      apiKey,
-      accessToken,
-      undefined,
-      undefined,
-      {
-        enabled: true,
-        maxRetries: 3
-      },
-      webhookSecret
-    );
-    console.log("✅ Wasender initialized successfully for bulk messaging");
-  } catch (err) {
-    console.error("❌ Failed to initialize Wasender:", err.message);
-  }
-
-  return wasender;
-}
-
-// ── Verify credentials on startup ─────────────────────────────────────────────
-if (!process.env.WASENDER_API_KEY || !process.env.WASENDER_PERSONAL_ACCESS_TOKEN) {
-  console.error("❌ MISSING ENV VARS: WASENDER_API_KEY or WASENDER_PERSONAL_ACCESS_TOKEN not set in .env");
+// ── SmartGrowth AI credentials check on startup ──────────────────────────────
+if (!whatsapp.isConfigured()) {
+  console.error("❌ MISSING ENV VARS: SMARTGROWTH_TOKEN or SMARTGROWTH_API_CODE not set in .env");
 } else {
-  console.log("✅ Wasender credentials found for bulk messaging, initializing...");
-  initializeWasender();
+  console.log("✅ SmartGrowth AI WhatsApp credentials found for bulk messaging");
 }
 
 /**
  * POST /send-bulk-text
- * Send WhatsApp messages to multiple recipients
+ * Send a WhatsApp campaign to multiple recipients.
+ *
+ * NOTE: SmartGrowth is a template-only campaign API — `message` is stored on
+ * the campaign record for the audit trail, but what recipients receive is the
+ * approved template (SMARTGROWTH_BULK_TEMPLATE_ID, or the `templateId` in the
+ * request body).
  */
 router.post("/send-bulk-text", async (req, res) => {
   try {
-    const { campaignName, message, phoneNumbers, totalRecipients, sentBy } = req.body;
+    const { campaignName, message, phoneNumbers, totalRecipients, sentBy, templateId } = req.body;
 
     // Validation
     if (!campaignName || !String(campaignName).trim()) {
@@ -91,87 +66,87 @@ router.post("/send-bulk-text", async (req, res) => {
 
     console.log("💾 Campaign record created:", campaign._id);
 
-    // Send messages asynchronously to avoid timeout
+    // Send asynchronously to avoid a request timeout on large lists
     setImmediate(async () => {
       let successCount = 0;
       let failureCount = 0;
+      const finalTemplateId = templateId || whatsapp.TEMPLATES.bulk();
 
-      for (let i = 0; i < phoneNumbers.length; i++) {
-        const phone = phoneNumbers[i];
-        
-        try {
-          let messageId = null;
-          let deliveryStatus = "failed";
-          let errorMessage = null;
-          let wasenderResponse = null;
-
-          const wasenderInstance = initializeWasender();
-
-          if (wasenderInstance) {
-            try {
-              const result = await wasenderInstance.sendMessage(
-                phone,
-                message.trim(),
-                {}
-              );
-
-              if (result && result.success) {
-                messageId = result.messageId || result.id;
-                deliveryStatus = "sent";
-                successCount++;
-                console.log(`✅ Message sent to ${phone}`);
-              } else {
-                failureCount++;
-                errorMessage = result?.error || "Unknown error";
-                console.log(`❌ Failed to send to ${phone}: ${errorMessage}`);
-              }
-
-              wasenderResponse = result;
-            } catch (apiErr) {
-              failureCount++;
-              errorMessage = apiErr.message;
-              deliveryStatus = "failed";
-              console.log(`🚨 API Error for ${phone}:`, apiErr.message);
-            }
+      // Walk the recipient list in chunks; each chunk is one campaign call.
+      for (let start = 0; start < phoneNumbers.length; start += CHUNK_SIZE) {
+        const indices = [];
+        const chunk = [];
+        for (let i = start; i < Math.min(start + CHUNK_SIZE, phoneNumbers.length); i++) {
+          const normalised = whatsapp.normalizePhone(phoneNumbers[i]);
+          if (normalised) {
+            indices.push(i);
+            chunk.push(normalised);
           } else {
+            // Unusable number — fail it here, it never reaches the provider.
             failureCount++;
-            errorMessage = "Wasender not initialized";
-            console.log(`⚠️ Wasender not initialized for ${phone}`);
-          }
-
-          // Update campaign record with message status
-          campaign.phoneNumbers[i].status = deliveryStatus;
-          campaign.phoneNumbers[i].messageId = messageId;
-          campaign.phoneNumbers[i].sentAt = new Date();
-          campaign.phoneNumbers[i].errorMessage = errorMessage;
-
-          // Update counts
-          if (deliveryStatus === "sent") {
-            campaign.sentCount++;
-            campaign.pendingCount--;
-          } else {
             campaign.failedCount++;
             campaign.pendingCount--;
+            campaign.phoneNumbers[i].status = "failed";
+            campaign.phoneNumbers[i].errorMessage = "Invalid phone number";
+            campaign.phoneNumbers[i].sentAt = new Date();
           }
-
-        } catch (error) {
-          console.error(`Error processing ${phone}:`, error);
-          failureCount++;
-          campaign.failedCount++;
-          campaign.pendingCount--;
-          campaign.phoneNumbers[i].status = "failed";
-          campaign.phoneNumbers[i].errorMessage = error.message;
         }
 
-        // Save progress every 10 messages
-        if ((i + 1) % 10 === 0 || i === phoneNumbers.length - 1) {
-          await campaign.save();
-          console.log(`📊 Progress: ${i + 1}/${phoneNumbers.length}`);
+        if (chunk.length === 0) continue;
+
+        let chunkStatus = "failed";
+        let chunkMessageId = null;
+        let chunkError = null;
+
+        try {
+          if (!whatsapp.isConfigured()) {
+            throw new Error("SmartGrowth AI is not configured (SMARTGROWTH_TOKEN / SMARTGROWTH_API_CODE)");
+          }
+
+          const result = await whatsapp.sendCampaign({
+            phoneNumbers: chunk,
+            campaignName: campaign.campaignName,
+            templateId: finalTemplateId,
+          });
+
+          chunkStatus = "sent";
+          chunkMessageId = result.campaignName;
+          console.log(`✅ Chunk sent: ${chunk.length} recipient(s) as "${result.campaignName}"`);
+        } catch (apiErr) {
+          chunkError =
+            apiErr.response?.data?.message ||
+            (apiErr.response?.data && JSON.stringify(apiErr.response.data).slice(0, 300)) ||
+            apiErr.message ||
+            "Unknown error";
+          console.error(`🚨 Chunk failed (${chunk.length} recipients):`, chunkError);
+        }
+
+        // Apply the chunk result to every recipient it covered.
+        for (const i of indices) {
+          campaign.phoneNumbers[i].status = chunkStatus;
+          campaign.phoneNumbers[i].messageId = chunkMessageId;
+          campaign.phoneNumbers[i].sentAt = new Date();
+          campaign.phoneNumbers[i].errorMessage = chunkError;
+          campaign.pendingCount--;
+          if (chunkStatus === "sent") {
+            successCount++;
+            campaign.sentCount++;
+          } else {
+            failureCount++;
+            campaign.failedCount++;
+          }
+        }
+
+        await campaign.save();
+        console.log(`📊 Progress: ${Math.min(start + CHUNK_SIZE, phoneNumbers.length)}/${phoneNumbers.length}`);
+
+        if (start + CHUNK_SIZE < phoneNumbers.length && CHUNK_DELAY_MS > 0) {
+          await sleep(CHUNK_DELAY_MS);
         }
       }
 
       // Mark campaign as complete
-      campaign.status = failureCount === 0 ? "sent" : "partially-sent";
+      campaign.status = failureCount === 0 ? "sent" : successCount === 0 ? "failed" : "partially-sent";
       campaign.completedAt = new Date();
       await campaign.save();
 

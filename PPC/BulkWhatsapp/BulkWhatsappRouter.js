@@ -2,7 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const XLSX = require("xlsx");
 const crypto = require("crypto");
-const { createWasender } = require("wasenderapi");
+const whatsapp = require("../services/whatsapp");
 require("dotenv/config");
 
 const uuidv4 = () => crypto.randomUUID();
@@ -17,47 +17,32 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 },
 });
 
-// ── Wasender singleton ──────────────────────────────────────────────────────
-let wasender = null;
-function getWasender() {
-  if (wasender) return wasender;
-  const apiKey = process.env.WASENDER_API_KEY;
-  const accessToken = process.env.WASENDER_PERSONAL_ACCESS_TOKEN;
-  if (!apiKey || !accessToken) {
-    console.error("[BulkWhatsapp] Missing WASENDER_API_KEY / WASENDER_PERSONAL_ACCESS_TOKEN in .env");
-    return null;
-  }
-  try {
-    wasender = createWasender(
-      apiKey,
-      accessToken,
-      undefined,
-      undefined,
-      { enabled: true, maxRetries: 3 },
-      process.env.WASENDER_WEBHOOK_SECRET
-    );
-    console.log("[BulkWhatsapp] Wasender initialized.");
-  } catch (err) {
-    console.error("[BulkWhatsapp] Failed to init Wasender:", err.message);
-  }
-  return wasender;
+// ── SmartGrowth AI credentials check on startup ─────────────────────────────
+if (!whatsapp.isConfigured()) {
+  console.error("[BulkWhatsapp] Missing SMARTGROWTH_TOKEN / SMARTGROWTH_API_CODE in .env");
+} else {
+  console.log("[BulkWhatsapp] SmartGrowth AI WhatsApp credentials found.");
 }
-getWasender();
 
 // ── Worker registry: one worker per active batch, tracked by batchId ────────
 const runningWorkers = new Set();
 const cancelledBatches = new Set();
 
-const WORKER_CHUNK = 100;             // records pulled from DB per loop
-const INTER_MESSAGE_DELAY_MS = 5000;  // 5s — matches Wasender "Account Protection" (1 msg / 5s)
+// Recipients per SmartGrowth campaign call. The API takes an array, so one call
+// covers a whole chunk instead of one call per number.
+const SEND_CHUNK = Number(process.env.SMARTGROWTH_BATCH_SIZE) || 500;
+// Records pulled from DB per loop. Kept >= SEND_CHUNK so each DB pull can fill
+// a whole campaign call rather than sending short ones.
+const WORKER_CHUNK = Math.max(100, SEND_CHUNK);
+const INTER_CHUNK_DELAY_MS = Number(process.env.SMARTGROWTH_BATCH_DELAY_MS) || 2000;
 const RATE_LIMIT_RETRY_MS = 6000;     // sleep this long on 429 before retrying
-const MAX_RATE_LIMIT_RETRIES = 3;     // up to 3 retries per record on 429
+const MAX_RATE_LIMIT_RETRIES = 3;     // up to 3 retries per chunk on 429
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-// Detect a 429 / rate-limit error from any shape the wasenderapi package might surface
+// Detect a 429 / rate-limit error from any shape the API might surface
 function isRateLimitError(errOrResult) {
   if (!errOrResult) return false;
   const status =
@@ -72,7 +57,7 @@ function isRateLimitError(errOrResult) {
     errOrResult?.response?.data?.message ||
     errOrResult?.response?.data?.error ||
     "";
-  return /\b429\b|rate.?limit|account protection|too many requests/i.test(String(text));
+  return /\b429\b|rate.?limit|too many requests/i.test(String(text));
 }
 
 // ── Phone normalization ─────────────────────────────────────────────────────
@@ -138,9 +123,8 @@ async function runBatchWorker(batchId) {
   runningWorkers.add(batchId);
   console.log(`[BulkWhatsapp] Worker START batch=${batchId}`);
 
-  const wa = getWasender();
-  if (!wa) {
-    console.error(`[BulkWhatsapp] Worker abort: Wasender not initialized (batch=${batchId})`);
+  if (!whatsapp.isConfigured()) {
+    console.error(`[BulkWhatsapp] Worker abort: SmartGrowth AI not configured (batch=${batchId})`);
     runningWorkers.delete(batchId);
     return;
   }
@@ -183,11 +167,14 @@ async function runBatchWorker(batchId) {
         }
       }
 
-      for (const rec of chunk) {
+      // Group the due records into campaign-sized slices. SmartGrowth takes an
+      // array of numbers per call, so one call covers a whole slice.
+      for (let start = 0; start < chunk.length; start += SEND_CHUNK) {
         if (cancelledBatches.has(batchId)) break;
 
-        // Ensure E.164 format (Wasender expects +<country><number>)
-        const to = rec.phoneNumber.startsWith("+") ? rec.phoneNumber : "+" + rec.phoneNumber;
+        const slice = chunk.slice(start, start + SEND_CHUNK);
+        const ids = slice.map((r) => r._id);
+        const numbers = slice.map((r) => r.phoneNumber);
 
         // ── Send-with-retry: on 429 we sleep + retry instead of marking Failed
         let attempt = 0;
@@ -199,43 +186,18 @@ async function runBatchWorker(batchId) {
           if (cancelledBatches.has(batchId)) break;
 
           try {
-            const result = await wa.send({
-              messageType: "text",
-              to,
-              text: rec.message,
+            const result = await whatsapp.sendCampaign({
+              phoneNumbers: numbers,
+              campaignName: `bulk${batchId.slice(0, 8)}`,
+              templateId: whatsapp.TEMPLATES.bulk(),
             });
 
-            // wasenderapi returns { response: { messageId, ... } } on success
-            const ok = !!(result && (result.response || result.success === true));
-            if (ok) {
-              finalMessageId =
-                result?.response?.messageId ||
-                result?.response?.id ||
-                result?.messageId ||
-                result?.id ||
-                null;
-              finalStatus = "Sent";
-              break;
-            }
-
-            // Non-throwing failure: check for rate limit in the result body
-            if (isRateLimitError(result) && attempt < MAX_RATE_LIMIT_RETRIES) {
-              console.warn(`[BulkWhatsapp] 429 (in body) to=${to} attempt=${attempt + 1} — sleeping ${RATE_LIMIT_RETRY_MS}ms`);
-              await sleep(RATE_LIMIT_RETRY_MS);
-              attempt++;
-              continue;
-            }
-
-            finalStatus = "Failed";
-            finalErr =
-              result?.error ||
-              result?.message ||
-              (typeof result === "object" ? JSON.stringify(result).slice(0, 300) : String(result)) ||
-              "Unknown error from Wasender";
+            finalMessageId = result.campaignName;
+            finalStatus = "Sent";
             break;
           } catch (err) {
             if (isRateLimitError(err) && attempt < MAX_RATE_LIMIT_RETRIES) {
-              console.warn(`[BulkWhatsapp] 429 (thrown) to=${to} attempt=${attempt + 1} — sleeping ${RATE_LIMIT_RETRY_MS}ms`);
+              console.warn(`[BulkWhatsapp] 429 chunk=${slice.length} attempt=${attempt + 1} — sleeping ${RATE_LIMIT_RETRY_MS}ms`);
               await sleep(RATE_LIMIT_RETRY_MS);
               attempt++;
               continue;
@@ -252,8 +214,8 @@ async function runBatchWorker(batchId) {
         }
 
         if (finalStatus === "Sent") {
-          await BulkWhatsapp.updateOne(
-            { _id: rec._id },
+          await BulkWhatsapp.updateMany(
+            { _id: { $in: ids } },
             {
               $set: {
                 status: "Sent",
@@ -264,16 +226,16 @@ async function runBatchWorker(batchId) {
             }
           );
         } else if (finalStatus === "Failed") {
-          console.error(`[BulkWhatsapp] Send failed to=${to}:`, finalErr);
-          await BulkWhatsapp.updateOne(
-            { _id: rec._id },
+          console.error(`[BulkWhatsapp] Campaign send failed for ${slice.length} number(s):`, finalErr);
+          await BulkWhatsapp.updateMany(
+            { _id: { $in: ids } },
             { $set: { status: "Failed", errorMessage: finalErr } }
           );
         }
-        // If cancelled mid-retry, leave the record as Pending so it gets picked up later.
+        // If cancelled mid-retry, leave the records as Pending so they get picked up later.
 
-        processed++;
-        if (INTER_MESSAGE_DELAY_MS > 0) await sleep(INTER_MESSAGE_DELAY_MS);
+        processed += slice.length;
+        if (INTER_CHUNK_DELAY_MS > 0) await sleep(INTER_CHUNK_DELAY_MS);
       }
 
       if (processed % 500 === 0) {
@@ -627,11 +589,11 @@ router.get("/batch/:batchId/export", async (req, res) => {
       if (rec.status === "Sent") {
         status = "Sent";
         log = rec.sentAt
-          ? `Delivered to Wasender at ${new Date(rec.sentAt).toLocaleString()}`
-          : "Delivered to Wasender";
+          ? `Submitted to SmartGrowth AI at ${new Date(rec.sentAt).toLocaleString()}${rec.messageId ? ` (campaign ${rec.messageId})` : ""}`
+          : "Submitted to SmartGrowth AI";
       } else if (rec.status === "Failed") {
         status = "Failed";
-        log = rec.errorMessage || "Unknown error (no details returned by Wasender).";
+        log = rec.errorMessage || "Unknown error (no details returned by SmartGrowth AI).";
       } else if (rec.status === "Sending") {
         status = "Sending";
         log = "Worker is currently processing this number.";

@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const RolePermission = require('../AdminRolls/AdminRollModel');
-const axios = require("axios");
+const whatsapp = require("../services/whatsapp");
 
 
 // Get all role permissions
@@ -20,45 +20,26 @@ router.get('/get-role-permissions', async (req, res) => {
 
 
 
+// Send a WhatsApp message via the SmartGrowth AI campaign API.
+// Template-only provider: `message` is not transmitted — the recipient gets the
+// approved template (SMARTGROWTH_NOTIFY_TEMPLATE_ID).
 router.post("/send-message", async (req, res) => {
   try {
-    const { to, message } = req.body;
+    const { to, message, campaignName, templateId } = req.body;
 
-    // ─── OneMSG (commented out — replaced by Meta WhatsApp Cloud API) ───
-    // const response = await axios.post(
-    //   "https://app.onemsg.io/api/create-message",
-    //   new URLSearchParams({
-    //     appkey: process.env.ONEMSG_APPKEY,
-    //     authkey: process.env.ONEMSG_AUTHKEY,
-    //     to,
-    //     message
-    //   }),
-    //   {
-    //     headers: {
-    //       "Content-Type": "application/x-www-form-urlencoded"
-    //     }
-    //   }
-    // );
-    const response = await axios.post(
-      `https://graph.facebook.com/${process.env.META_API_VERSION || "v21.0"}/${process.env.META_PHONE_NUMBER_ID}/messages`,
-      {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: String(to).replace(/\D/g, ""),
-        type: "text",
-        text: { preview_url: false, body: message }
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.META_WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
+    if (message) {
+      console.log(`ℹ️ [AdminRoll] body not delivered (template-only): ${String(message).slice(0, 120)}`);
+    }
 
-    res.json(response.data);
+    const result = await whatsapp.sendCampaign({
+      phoneNumbers: [to],
+      campaignName: campaignName || "adminroll",
+      templateId: templateId || whatsapp.TEMPLATES.notify(),
+    });
+
+    res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json(err.response?.data || { error: err.message });
   }
 });
 

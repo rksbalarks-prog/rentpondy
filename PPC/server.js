@@ -21,9 +21,7 @@ import baseScope from './utils/baseScope.js';
 // the Firebase OTP login path. Default-imported because the module is CommonJS.
 import firebaseAdmin from './config/firebaseAdmin.js';
 
-// Import whatsapp routes
-import whatsappRoutes from "./routes/whatsappRoutes.js";
-// WhatsApp Cloud API (Meta) — inbound webhook + send routes
+// WhatsApp (SmartGrowth AI campaign API) — internal send routes
 import whatsappCloudRoutes from "./routes/whatsappWebhook.js";
 
 // Import all your routers
@@ -822,20 +820,18 @@ app.use('/PPC', adminReportMail.router); // Admin report PDF e-mail: /admin-repo
 app.use('/PPC', adminExcelMail.router); // Admin detail Excel e-mail: /admin-excel-mail/status, /send-now
 app.use('/PPC/', whiteTownRoutes);
 app.use('/PPC', SingleSendRoutes);
-app.use("/PPC", whatsappRoutes);
-app.use("/PPC", PMRouter); // PM WhatsApp Credentials & Message routes
+app.use("/PPC", PMRouter); // PM WhatsApp: /send-text, /pm-history, /pm-stats
 app.use("/PPC", PmBulkRouter); // PM Bulk WhatsApp routes
-app.use("/PPC/api/bulk-whatsapp", BulkWhatsappRouter); // Admin Bulk WhatsApp (Wasender + large file uploads)
+app.use("/PPC/api/bulk-whatsapp", BulkWhatsappRouter); // Admin Bulk WhatsApp (campaign API + large file uploads)
 app.use("/PPC", RcmRouter); // Call Management (/process/dashboard/rp.wfh) routes
 // app.use("/PPC", RoleAccessRouter); // Roles Access routes
 
-// ── Meta WhatsApp Cloud API (inbound webhook + send) ─────────────────────────
-// Mounted at BOTH root and /PPC so Meta's callback works no matter how nginx
+// ── WhatsApp (SmartGrowth AI campaign API) ───────────────────────────────────
+// Mounted at BOTH root and /PPC so the routes resolve no matter how nginx
 // forwards the path:
-//   http://localhost:5005/webhook       (root, for local curl test)
-//   https://rentpondy.com/PPC/webhook   (public, via nginx)
-// The /webhook handlers are intentionally NOT behind any auth (Meta calls them
-// unauthenticated). The /api/send-whatsapp route enforces its own x-api-key.
+//   http://localhost:5005/api/send-whatsapp       (root, for local curl test)
+//   https://rentpondy.com/PPC/api/send-whatsapp   (public, via nginx)
+// Both send routes enforce their own x-api-key (WA_INTERNAL_API_KEY).
 app.use(whatsappCloudRoutes);
 app.use("/PPC", whatsappCloudRoutes);
 
