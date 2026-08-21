@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { FaCoins, FaLock, FaRocket, FaStar } from 'react-icons/fa';
+import axios from 'axios';
 import { initiatePointsPayment } from './PayUPointsPayment/initiatePointsPayment';
 
+// Last-resort plan, used only when /points-config-public cannot be reached.
+// Normally the plans shown here are the ones an admin picked on
+// Points Pricing > No Points Popup - Plans in the admin panel.
 const DEFAULT_STARTER_PLAN = {
   _id: 'points-100',
   name: 'Starter',
@@ -25,6 +29,38 @@ export default function InsufficientPointsModal({ show, onHide, balance = 0, req
   const [paying, setPaying] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Plans the admin chose for this popup (Points Pricing > No Points Popup).
+  // Empty until the fetch lands; DEFAULT_STARTER_PLAN covers the failure case
+  // so the buy button is never dead.
+  const [plans, setPlans] = useState([]);
+  const [planId, setPlanId] = useState('');
+
+  // Fetched each time the popup opens rather than once on mount: the admin can
+  // change the selection at any moment, and this is a rare, cheap call.
+  useEffect(() => {
+    if (!show) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.REACT_APP_API_URL}/points-config-public`
+        );
+        const list = Array.isArray(res.data?.popupPlans) ? res.data.popupPlans : [];
+        if (cancelled || !list.length) return;
+        setPlans(list);
+        setPlanId(String(list[0]._id));
+      } catch (err) {
+        // Offline or endpoint down — keep the hardcoded starter plan.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [show]);
+
+  const activePlan =
+    plans.find((p) => String(p._id) === planId) || plans[0] || DEFAULT_STARTER_PLAN;
+
   const goToPayU = async () => {
     const phoneNumber = localStorage.getItem('phoneNumber') || '';
     if (!phoneNumber) {
@@ -38,10 +74,10 @@ export default function InsufficientPointsModal({ show, onHide, balance = 0, req
       // Skip the intermediate PayU form — go straight to PayU's hosted page.
       await initiatePointsPayment({
         phoneNumber,
-        planName: DEFAULT_STARTER_PLAN.name,
-        planId: DEFAULT_STARTER_PLAN._id,
-        amount: DEFAULT_STARTER_PLAN.price,
-        points: DEFAULT_STARTER_PLAN.points,
+        planName: activePlan.name,
+        planId: String(activePlan._id),
+        amount: activePlan.price,
+        points: activePlan.points,
       });
     } catch (error) {
       const msg = error?.response?.data?.message || error?.message || 'Failed to start payment.';
@@ -202,9 +238,80 @@ export default function InsufficientPointsModal({ show, onHide, balance = 0, req
             </div>
           </div>
 
-          <p style={{ color: '#555', fontSize: 12.5, textAlign: 'center', marginBottom: 14, lineHeight: 1.45 }}>
-            Pick a points pack and keep exploring properties. Packs start at just <b>₹100</b>.
-          </p>
+          {plans.length > 0 ? (
+            <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
+              {plans.map((p) => {
+                const id = String(p._id);
+                const on = id === planId;
+                // One configured plan is information, not a choice — render it as
+                // a plain summary row with nothing to click.
+                const selectable = plans.length > 1;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={selectable ? () => setPlanId(id) : undefined}
+                    disabled={!selectable}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: 12,
+                      textAlign: 'left',
+                      cursor: selectable ? 'pointer' : 'default',
+                      background: on
+                        ? 'linear-gradient(135deg, rgba(79,75,126,0.10), rgba(245,87,108,0.10))'
+                        : '#FAFAFC',
+                      border: on
+                        ? '2px solid #4F4B7E'
+                        : '1px solid rgba(79,75,126,0.22)',
+                      transition: 'border-color 0.2s ease, background 0.2s ease',
+                    }}
+                  >
+                    <span>
+                      <span
+                        style={{
+                          display: 'block',
+                          fontWeight: 700,
+                          fontSize: 13,
+                          color: '#2F2C4A',
+                        }}
+                      >
+                        {p.name}
+                        {p.popular ? (
+                          <span
+                            style={{
+                              marginLeft: 6,
+                              padding: '1px 6px',
+                              borderRadius: 20,
+                              background: '#FFD700',
+                              color: '#5A4500',
+                              fontSize: 9,
+                              fontWeight: 800,
+                              letterSpacing: 0.3,
+                              verticalAlign: 'middle',
+                            }}
+                          >
+                            POPULAR
+                          </span>
+                        ) : null}
+                      </span>
+                      <span style={{ fontSize: 11, color: '#777' }}>{p.points} points</span>
+                    </span>
+                    <span style={{ fontWeight: 800, fontSize: 15, color: '#4F4B7E' }}>
+                      ₹{p.price}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p style={{ color: '#555', fontSize: 12.5, textAlign: 'center', marginBottom: 14, lineHeight: 1.45 }}>
+              Pick a points pack and keep exploring properties. Packs start at just <b>₹100</b>.
+            </p>
+          )}
 
           <button
             onClick={goToPayU}
@@ -248,7 +355,11 @@ export default function InsufficientPointsModal({ show, onHide, balance = 0, req
               }}
             >
               <FaRocket />
-              <span>{paying ? 'Redirecting to PayU…' : 'Buy Points Plan'}</span>
+              <span>
+                {paying
+                  ? 'Redirecting to PayU…'
+                  : `Buy ${activePlan.points} Points · ₹${activePlan.price}`}
+              </span>
             </span>
           </button>
           {errorMsg && (

@@ -448,7 +448,7 @@ router.get('/points-config', async (req, res) => {
 
 router.put('/points-config', async (req, res) => {
   try {
-    const { pointsPerContactReveal, pointsPerTenantContactReveal, pointsPerTouristContactReveal, adminId } = req.body || {};
+    const { pointsPerContactReveal, pointsPerTenantContactReveal, pointsPerTouristContactReveal, popupPlanIds, adminId } = req.body || {};
     const update = { updatedBy: adminId || null };
     if (pointsPerContactReveal != null) {
       const n = Number(pointsPerContactReveal);
@@ -471,6 +471,26 @@ router.put('/points-config', async (req, res) => {
       }
       update.pointsPerTouristContactReveal = n;
     }
+    // Plans to show in the user app's "no points" popup. Sent as an array of
+    // PointsPlan _id strings, in display order. An empty array is a valid,
+    // meaningful value — it clears the choice and puts the popup back on its
+    // cheapest-active-plan fallback — so this is checked with Array.isArray
+    // rather than a truthiness test.
+    if (Array.isArray(popupPlanIds)) {
+      const ids = [...new Set(popupPlanIds.map((x) => String(x || '').trim()).filter(Boolean))];
+      const bad = ids.filter((id) => !/^[0-9a-fA-F]{24}$/.test(id));
+      if (bad.length) {
+        return res.status(400).json({ success: false, message: `Invalid plan id: ${bad[0]}` });
+      }
+      if (ids.length) {
+        const found = await PointsPlan.find({ _id: { $in: ids } }, { _id: 1 }).lean();
+        if (found.length !== ids.length) {
+          return res.status(400).json({ success: false, message: 'One or more selected plans no longer exist' });
+        }
+      }
+      update.popupPlanIds = ids;
+    }
+
     const cfg = await PointsConfig.findByIdAndUpdate(
       'points-config',
       update,

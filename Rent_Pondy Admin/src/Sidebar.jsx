@@ -191,7 +191,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         )}
 
         {/* ── POINTS PRICING ── */}
-        {sv(["Points Plans", "Points Users", "Points Transactions", "Points PayLater", "Points PayU", "Points Settings", "Points Refunds"]) && (
+        {sv(["Points Plans", "Points Users", "Points Transactions", "Points PayLater", "Points PayU", "Points Settings", "Points Refunds", "Points Popup"]) && (
           <>
             <li className="p-3 mt-2 text-white" onClick={() => toggleMenu("pointsPricing")} style={{ borderRadius: "5px", background: "#8BC34A", cursor: "pointer" }}>
               <RiHandCoinFill size={20} style={{ marginRight: "10px" }} />Points Pricing
@@ -204,6 +204,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               {can("Points PayU") && <li className="p-0 mt-2"><NavLink to="/dashboard/points-payu" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaFileInvoice size={20} />Points PayU Records</NavLink></li>}
               {can("Points Refunds") && <li className="p-0 mt-2"><NavLink to="/dashboard/points-refunds" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><RiExchangeFill size={20} />Points Refund Requests</NavLink></li>}
               {can("Points Settings") && <li className="p-0 mt-2"><NavLink to="/dashboard/points-settings" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><RiSettings5Fill size={20} />Points Settings</NavLink></li>}
+              {can("Points Popup") && <li className="p-0 mt-2"><NavLink to="/dashboard/points-popup-plans" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><RiLayoutFill size={20} />No Points Popup - Plans</NavLink></li>}
             </ul>
           </>
         )}

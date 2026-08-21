@@ -109,6 +109,12 @@ const BuyerAssistanceSchema = new mongoose.Schema({
   },
   isDeleted: { type: Boolean, default: false },
   deletedAt: { type: Date, default: null },
+  // Manual "Mark as Expired" from the admin Active Tenant Assistance page.
+  // Only set when an admin expires a record by hand — the automatic plan
+  // expiry in BuyerPlan/BuyerRouter.js sets ra_status alone, which is how the
+  // Expired screen tells the two apart.
+  raExpiredAt: { type: Date, default: null },
+  raExpiredBy: { type: String, default: '' },
 }, { timestamps: true });
 
 // City-base scope: every list/count/aggregate query is auto-filtered to the

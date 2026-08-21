@@ -465,6 +465,30 @@ class ApiService {
     }
   }
 
+  /// GET /points-config-public -> { popupPlans: [ ... ], popupPlansSource }
+  ///
+  /// The plans an admin picked for the "no points" paywall on the admin panel's
+  /// Points Pricing > No Points Popup screen. The server already drops hidden
+  /// plans and falls back to the cheapest active one, so whatever comes back
+  /// here is safe to show as-is. Empty list on failure, so the modal keeps its
+  /// own hardcoded fallback and the buy button is never dead.
+  Future<List<PointsPlan>> fetchPopupPlans() async {
+    try {
+      final res = await _client.get(_uri('/points-config-public'));
+      if (res.statusCode != 200) return const [];
+      final decoded = jsonDecode(res.body);
+      if (decoded is! Map<String, dynamic>) return const [];
+      final list = decoded['popupPlans'];
+      if (list is! List) return const [];
+      return list
+          .whereType<Map<String, dynamic>>()
+          .map(PointsPlan.fromJson)
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
   /// Reserve the plan, then fetch the PayU form fields.
   ///
   ///   POST /select-points-plan  { phoneNumber, planId, points, amount }

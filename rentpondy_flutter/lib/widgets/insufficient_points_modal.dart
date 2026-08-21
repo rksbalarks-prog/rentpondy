@@ -23,8 +23,10 @@ import '../theme/app_colors.dart';
 ///  * `ip-stats-border` / `ip-stats-sweep` / `ip-required-pulse`
 ///  * `ip-cta-pulse` / `ip-cta-shine`
 ///
-/// Like the web version, "Buy Points Plan" skips the plans page and goes
-/// straight to PayU with the ₹100 Starter pack.
+/// Like the web version, the buy button skips the plans page and goes straight
+/// to PayU with the selected pack. Which packs appear here is set by an admin
+/// on the admin panel's Points Pricing > No Points Popup screen and read from
+/// `GET /points-config-public`.
 ///
 /// Returns `true` when the user actually bought points, so the caller can
 /// retry whatever the paywall interrupted.
@@ -90,9 +92,23 @@ class _InsufficientPointsModal extends StatefulWidget {
 
 class _InsufficientPointsModalState extends State<_InsufficientPointsModal>
     with TickerProviderStateMixin {
-  /// The pack "Buy Points Plan" buys outright — DEFAULT_STARTER_PLAN on the web
-  /// (points-100 / Starter / ₹100 / 100 pts), which is our first fallback plan.
+  /// Last resort, used only when `/points-config-public` cannot be reached —
+  /// DEFAULT_STARTER_PLAN on the web (points-100 / Starter / ₹100 / 100 pts).
+  /// Normally the packs shown here are the ones an admin picked on the admin
+  /// panel's Points Pricing > No Points Popup screen.
   static final PointsPlan _starter = PointsPlan.fallback.first;
+
+  /// Admin-chosen packs for this paywall; empty until the fetch lands.
+  List<PointsPlan> _plans = const [];
+  String _planId = '';
+
+  /// The pack the buy button will actually charge for.
+  PointsPlan get _activePlan {
+    for (final p in _plans) {
+      if (p.id == _planId) return p;
+    }
+    return _plans.isNotEmpty ? _plans.first : _starter;
+  }
 
   late final AppState _app = context.read<AppState>();
 
@@ -124,6 +140,23 @@ class _InsufficientPointsModalState extends State<_InsufficientPointsModal>
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadPlans();
+  }
+
+  /// Fetched every time the paywall opens rather than cached: the admin can
+  /// change the selection at any moment, and this is a rare, cheap call.
+  Future<void> _loadPlans() async {
+    final list = await _app.api.fetchPopupPlans();
+    if (!mounted || list.isEmpty) return;
+    setState(() {
+      _plans = list;
+      _planId = list.first.id;
+    });
+  }
+
+  @override
   void dispose() {
     for (final c in _all) {
       c.dispose();
@@ -133,13 +166,21 @@ class _InsufficientPointsModalState extends State<_InsufficientPointsModal>
 
   String _t(String key) => AppStrings.tr(key, _app.lang);
 
+  /// "Buy Points Plan · ₹500" — keeps the translated label and appends the
+  /// price of the selected pack, so the button says what it will charge.
+  String get _buyLabel {
+    final p = _activePlan.price;
+    final price = p % 1 == 0 ? '${p.toInt()}' : '$p';
+    return '${_t('ip.buyPlan')} · ₹$price';
+  }
+
   // ------------------------------------------------------------------
   // Actions
   // ------------------------------------------------------------------
 
-  /// Straight to PayU's hosted page with the Starter pack — no plans screen in
+  /// Straight to PayU's hosted page with the selected pack — no plans screen in
   /// between, exactly like `goToPayU` on the web.
-  Future<void> _buyStarter() async {
+  Future<void> _buySelected() async {
     if (_paying) return;
     final phone = _app.phoneNumber;
     if (phone == null || phone.isEmpty) {
@@ -154,7 +195,7 @@ class _InsufficientPointsModalState extends State<_InsufficientPointsModal>
     try {
       final fields = await _app.api.initiatePointsPayment(
         phoneNumber: phone,
-        plan: _starter,
+        plan: _activePlan,
         nowMillis: DateTime.now().millisecondsSinceEpoch,
       );
       if (!mounted) return;
@@ -514,7 +555,7 @@ class _InsufficientPointsModalState extends State<_InsufficientPointsModal>
         children: [
           _stats(),
           const SizedBox(height: 14),
-          _pitch(),
+          if (_plans.isEmpty) _pitch() else _planCards(),
           const SizedBox(height: 14),
           _cta(),
           if (_error.isNotEmpty)
@@ -684,6 +725,27 @@ class _InsufficientPointsModalState extends State<_InsufficientPointsModal>
     );
   }
 
+  /// The packs an admin picked for this paywall, replacing the generic pitch
+  /// line. A single pack is information rather than a choice, so it renders as
+  /// a plain summary row with nothing to tap.
+  Widget _planCards() {
+    final selectable = _plans.length > 1;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final p in _plans) ...[
+          _PlanCard(
+            plan: p,
+            selected: p.id == _activePlan.id,
+            ptsLabel: _t('ip.pts'),
+            onTap: selectable ? () => setState(() => _planId = p.id) : null,
+          ),
+          if (p != _plans.last) const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+
   Widget _pitch() {
     final parts = _t('ip.pitch').split('{p}');
     return Text.rich(
@@ -759,7 +821,7 @@ class _InsufficientPointsModalState extends State<_InsufficientPointsModal>
               ),
             ),
             TextButton(
-              onPressed: _paying ? null : _buyStarter,
+              onPressed: _paying ? null : _buySelected,
               style: TextButton.styleFrom(
                 minimumSize: const Size(double.infinity, 46),
                 padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -786,7 +848,7 @@ class _InsufficientPointsModalState extends State<_InsufficientPointsModal>
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      _paying ? _t('ip.redirecting') : _t('ip.buyPlan'),
+                      _paying ? _t('ip.redirecting') : _buyLabel,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 14.5,
@@ -833,6 +895,118 @@ class _InsufficientPointsModalState extends State<_InsufficientPointsModal>
 
 /// Slides a gradient sideways by [dx] bounds-widths — the Flutter equivalent of
 /// animating CSS `background-position` on an oversized gradient.
+/// One selectable pack inside the paywall — the Flutter twin of the plan
+/// buttons the web modal renders when an admin has configured this popup.
+class _PlanCard extends StatelessWidget {
+  const _PlanCard({
+    required this.plan,
+    required this.selected,
+    required this.ptsLabel,
+    this.onTap,
+  });
+
+  final PointsPlan plan;
+  final bool selected;
+  final String ptsLabel;
+
+  /// Null when there is only one pack, which makes the row non-tappable.
+  final VoidCallback? onTap;
+
+  /// Prices are whole rupees in practice; drop a trailing ".0" if one shows up.
+  String get _price {
+    final p = plan.price;
+    return p % 1 == 0 ? '${p.toInt()}' : '$p';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? const Color(0xFFF4F2FB) : const Color(0xFFFAFAFC),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? _deep : _deep.withValues(alpha: 0.22),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            plan.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF2F2C4A),
+                            ),
+                          ),
+                        ),
+                        if (plan.popular) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _gold,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'POPULAR',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.3,
+                                color: Color(0xFF5A4500),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      '${plan.points} $ptsLabel',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF777777),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '₹$_price',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: _deep,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SlideGradient extends GradientTransform {
   const _SlideGradient(this.dx);
 

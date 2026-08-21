@@ -3744,6 +3744,160 @@ router.put("/update-whatsapp-status-matched-property/:buyerAssistanceId", async 
   }
 });
 
+// ─── Manual "Mark as Expired" for tenant assistance ──────────────────────────
+// Additive. Mirrors the AUTOMATIC expiry in BuyerPlan/BuyerRouter.js, which
+// flips BuyerAssistance.ra_status to "raExpired" and the matching PayU record's
+// payustatususer alongside it. The only difference here is that an admin
+// triggers it, and raExpiredAt / raExpiredBy record who and when — those two
+// fields are what separate a hand-expired record from an auto-expired one, and
+// they drive the "Manually Expired" section on the Expired screen.
+//
+//   PUT /mark-buyerAssistance-expired-rent    { raIds: [...], expiredBy }
+//   PUT /unmark-buyerAssistance-expired-rent  { raIds: [...] }
+//   GET /manually-expired-buyerAssistance-rent
+
+router.put("/mark-buyerAssistance-expired-rent", async (req, res) => {
+  try {
+    const raIds = Array.isArray(req.body?.raIds) ? req.body.raIds : [];
+    const expiredBy = String(req.body?.expiredBy || "").trim() || "Admin";
+
+    if (raIds.length === 0) {
+      return res.status(400).json({ success: false, message: '"raIds" must be a non-empty array' });
+    }
+
+    const expired = [];
+    const notFound = [];
+
+    for (const rawId of raIds) {
+      const Ra_Id = Number(rawId);
+      if (!Number.isFinite(Ra_Id)) {
+        notFound.push(rawId);
+        continue;
+      }
+
+      const result = await BuyerAssistance.updateOne(
+        { Ra_Id },
+        { $set: { ra_status: "raExpired", raExpiredAt: new Date(), raExpiredBy: expiredBy } }
+      );
+
+      // matchedCount on modern drivers, n on older ones — accept either.
+      const matched = result.matchedCount != null ? result.matchedCount : result.n;
+      if (!matched) {
+        notFound.push(rawId);
+        continue;
+      }
+
+      // Keep the payment record in step, as the automatic path does. Scoped to
+      // 'paid' so a pending or failed payment is never touched.
+      //
+      // 'expiredPlan' — not the 'raExpired' that BuyerPlan/BuyerRouter.js
+      // writes — because payustatususer is an enum of
+      // ['pay now','pay later','paid','pay failed','expiredPlan']. That other
+      // path only gets away with 'raExpired' because updateOne skips validators
+      // by default; there is no reason to add more out-of-enum data here.
+      await PaymentPayUBuyer.updateMany(
+        { Ra_Id, payustatususer: "paid" },
+        { $set: { payustatususer: "expiredPlan", updatedAt: new Date() } }
+      );
+
+      expired.push(Ra_Id);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `${expired.length} tenant assistance record(s) marked as expired.`,
+      expiredCount: expired.length,
+      expired,
+      notFound,
+    });
+  } catch (error) {
+    console.error("Error marking tenant assistance as expired:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error marking tenant assistance as expired.",
+      error: error.message,
+    });
+  }
+});
+
+router.put("/unmark-buyerAssistance-expired-rent", async (req, res) => {
+  try {
+    const raIds = Array.isArray(req.body?.raIds) ? req.body.raIds : [];
+
+    if (raIds.length === 0) {
+      return res.status(400).json({ success: false, message: '"raIds" must be a non-empty array' });
+    }
+
+    const restored = [];
+    const skipped = [];
+
+    for (const rawId of raIds) {
+      const Ra_Id = Number(rawId);
+      if (!Number.isFinite(Ra_Id)) {
+        skipped.push(rawId);
+        continue;
+      }
+
+      // Only records expired BY HAND can be restored. A record the automatic
+      // plan-expiry path retired has no raExpiredAt, and putting it back would
+      // resurrect a plan whose validity has genuinely run out.
+      const doc = await BuyerAssistance.findOne({ Ra_Id, raExpiredAt: { $ne: null } });
+      if (!doc) {
+        skipped.push(rawId);
+        continue;
+      }
+
+      await BuyerAssistance.updateOne(
+        { Ra_Id },
+        { $set: { ra_status: "raActive", raExpiredAt: null, raExpiredBy: "" } }
+      );
+      await PaymentPayUBuyer.updateMany(
+        { Ra_Id, payustatususer: "expiredPlan" },
+        { $set: { payustatususer: "paid", updatedAt: new Date() } }
+      );
+
+      restored.push(Ra_Id);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `${restored.length} tenant assistance record(s) restored to active.`,
+      restoredCount: restored.length,
+      restored,
+      skipped,
+    });
+  } catch (error) {
+    console.error("Error restoring tenant assistance:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error restoring tenant assistance.",
+      error: error.message,
+    });
+  }
+});
+
+router.get("/manually-expired-buyerAssistance-rent", async (req, res) => {
+  try {
+    // Soft-deleted records are excluded — they belong on the Removed Tenant
+    // page, which is where their Undo lives.
+    const data = await BuyerAssistance.find({
+      ra_status: "raExpired",
+      raExpiredAt: { $ne: null },
+      isDeleted: { $ne: true },
+      ...baseFilter(req.query.base),
+    }).sort({ raExpiredAt: -1 });
+
+    return res.status(200).json({ success: true, count: data.length, data });
+  } catch (error) {
+    console.error("Error fetching manually expired tenant assistance:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching manually expired tenant assistance.",
+      error: error.message,
+    });
+  }
+});
+
  module.exports = router;
 
 

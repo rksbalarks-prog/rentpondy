@@ -70,6 +70,11 @@ const PointsConfigSchema = new mongoose.Schema(
     // Points charged when a user reveals a viewer's number in the
     // "Tourist Lead" tab (Place To Stay leads).
     pointsPerTouristContactReveal: { type: Number, default: 10, min: 1 },
+    // Which PointsPlan rows the user app shows inside the "no points" popup
+    // (InsufficientPointsModal). Stored as plain _id strings in the order the
+    // admin arranged them. Empty array = no admin choice made, in which case
+    // the app falls back to the cheapest active plan, exactly as before.
+    popupPlanIds: { type: [String], default: [] },
     updatedBy: { type: String, default: null },
   },
   { timestamps: true, _id: false }

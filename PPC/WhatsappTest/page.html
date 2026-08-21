@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>WhatsApp Bulk Test — SmartGrowth AI</title>
+<style>
+  :root {
+    --bg: #f4f5f9;
+    --card: #ffffff;
+    --ink: #1d1c2b;
+    --muted: #6b6980;
+    --line: #e2e1ec;
+    --brand: #4f4b7e;
+    --brand-ink: #ffffff;
+    --ok: #128a52;
+    --ok-bg: #e6f6ee;
+    --warn: #9a6700;
+    --warn-bg: #fff6e0;
+    --bad: #c02c2c;
+    --bad-bg: #fdeaea;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 16px 64px;
+    background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em;
+             color: var(--muted); margin: 0 0 14px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+  .hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+  input[type=text], input[type=password], input[type=number], textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line);
+    border-radius: 8px; font: inherit; background: #fff; color: var(--ink);
+  }
+  textarea { resize: vertical; font-family: var(--mono); font-size: 13px; }
+  input:focus, textarea:focus { outline: 2px solid var(--brand); outline-offset: -1px; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; }
+  .row > div { flex: 1 1 180px; }
+  .field { margin-bottom: 14px; }
+  button {
+    font: inherit; font-weight: 600; border-radius: 8px; cursor: pointer;
+    padding: 11px 20px; border: 1px solid var(--brand);
+    background: var(--brand); color: var(--brand-ink);
+  }
+  button.ghost { background: #fff; color: var(--brand); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .pill {
+    display: inline-block; padding: 3px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+  }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .pill.bad { background: var(--bad-bg); color: var(--bad); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  .banner {
+    border-radius: 8px; padding: 12px 14px; font-size: 13px; margin-bottom: 16px;
+    background: var(--warn-bg); color: var(--warn); border: 1px solid #f0dca8;
+  }
+  .kv { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .counts { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; }
+  .counts b { font-size: 18px; display: block; }
+  .counts .bad b { color: var(--bad); }
+  pre {
+    background: #16151f; color: #e8e6f5; padding: 14px; border-radius: 8px;
+    overflow-x: auto; font-family: var(--mono); font-size: 12px; line-height: 1.5;
+    max-height: 460px; overflow-y: auto;
+  }
+  .switch { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
+  .switch input { width: 18px; height: 18px; }
+  .actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .res-line {
+    display: flex; gap: 12px; align-items: center; padding: 8px 0;
+    border-bottom: 1px solid var(--line); font-size: 13px;
+  }
+  .res-line:last-child { border-bottom: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>WhatsApp Bulk Test</h1>
+  <p class="sub">SmartGrowth AI campaign API · <span id="statusPill" class="pill warn">checking…</span></p>
+
+  <div class="banner">
+    <b>Template-only provider.</b> The campaign payload has no message body — every
+    recipient sees whatever the approved template says. Any text you type below is
+    logged on the server for the audit trail but is <b>not delivered</b>. To change
+    the wording, get another template approved and put its ID in the Template field.
+  </div>
+
+  <div class="card">
+    <h2>Server</h2>
+    <div class="kv" id="serverInfo">loading…</div>
+  </div>
+
+  <div class="card">
+    <h2>1 · Passcode</h2>
+    <div class="field">
+      <label for="key">Test passcode <span class="hint">— WHATSAPP_TEST_KEY from PPC/.env</span></label>
+      <input type="password" id="key" autocomplete="off" placeholder="passcode" />
+    </div>
+    <label class="switch"><input type="checkbox" id="remember" /> Remember on this device</label>
+  </div>
+
+  <div class="card">
+    <h2>2 · Numbers</h2>
+    <div class="field">
+      <label for="numbers">Paste numbers
+        <span class="hint">— any separator: newline, comma, space, tab. 10-digit numbers get 91 prefixed.</span>
+      </label>
+      <textarea id="numbers" rows="9" placeholder="9361546021&#10;+91 93615 46021&#10;919361546021, 9876543210"></textarea>
+    </div>
+    <div class="counts">
+      <div><b id="cValid">0</b> will send</div>
+      <div><b id="cDupes">0</b> duplicates dropped</div>
+      <div class="bad"><b id="cBad">0</b> invalid</div>
+    </div>
+    <div class="kv" id="badSamples" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
+    <h2>3 · Campaign</h2>
+    <div class="row">
+      <div class="field">
+        <label for="campaign">Campaign name <span class="hint">— a UTC timestamp is appended</span></label>
+        <input type="text" id="campaign" value="bulktest" />
+      </div>
+      <div class="field">
+        <label for="template">Template ID</label>
+        <input type="text" id="template" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="batch">Batch size <span class="hint">— numbers per API call</span></label>
+        <input type="number" id="batch" min="1" max="1000" />
+      </div>
+      <div class="field">
+        <label for="delay">Delay between batches (ms)</label>
+        <input type="number" id="delay" min="0" max="60000" step="500" />
+      </div>
+    </div>
+    <div class="field">
+      <label for="message">Message text <span class="hint">— logged only, NOT delivered</span></label>
+      <textarea id="message" rows="3" placeholder="(optional) what you intended to send — kept in the server log"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>4 · Send</h2>
+    <label class="switch" style="margin-bottom:14px">
+      <input type="checkbox" id="dryRun" checked />
+      Dry run — validate and show the exact payload, send nothing
+    </label>
+    <div class="actions">
+      <button id="send">Run dry run</button>
+      <button id="clear" class="ghost" type="button">Clear result</button>
+      <span class="kv" id="busy"></span>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <h2>Result</h2>
+    <div id="resultSummary"></div>
+    <div id="resultLines" style="margin:12px 0"></div>
+    <pre id="resultJson"></pre>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  // Works whether the page is served at /whatsapp-test (direct node) or at
+  // /PPC/whatsapp-test (through nginx, which strips the /PPC prefix).
+  var BASE = location.pathname.replace(/\/+$/, '');
+
+  var $ = function (id) { return document.getElementById(id); };
+  var cfg = null;
+
+  // ── Config ────────────────────────────────────────────────────────────────
+  fetch(BASE + '/config', { headers: { Accept: 'application/json' } })
+    .then(function (r) { return r.json(); })
+    .then(function (c) {
+      cfg = c;
+      var pill = $('statusPill');
+      if (c.configured) {
+        pill.className = 'pill ok';
+        pill.textContent = 'credentials configured';
+      } else {
+        pill.className = 'pill bad';
+        pill.textContent = 'NOT configured — ' +
+          (!c.hasToken ? 'SMARTGROWTH_TOKEN missing' : '') +
+          (!c.hasToken && !c.hasApiCode ? ' + ' : '') +
+          (!c.hasApiCode ? 'SMARTGROWTH_API_CODE missing' : '');
+      }
+      $('serverInfo').innerHTML =
+        'endpoint&nbsp; ' + esc(c.endpoint) + '<br>' +
+        'default template&nbsp; ' + esc(c.defaultTemplateId) + '<br>' +
+        'bulk template&nbsp; ' + esc(c.bulkTemplateId) + '<br>' +
+        'timeout&nbsp; ' + c.timeoutMs + ' ms&nbsp; · &nbsp;max recipients&nbsp; ' + c.maxRecipients +
+        '&nbsp; · &nbsp;unique campaign names&nbsp; ' + (c.uniqueCampaignNames ? 'on' : 'off') +
+        '<br>passcode&nbsp; ' + (c.passcodeSet ? 'set on server' : 'NOT SET — the send route will refuse');
+      $('template').value = c.bulkTemplateId || '';
+      $('batch').value = c.batchSize;
+      $('delay').value = c.batchDelayMs;
+    })
+    .catch(function (e) {
+      $('statusPill').className = 'pill bad';
+      $('statusPill').textContent = 'config unreachable';
+      $('serverInfo').textContent = String(e);
+    });
+
+  // ── Remembered passcode ───────────────────────────────────────────────────
+  try {
+    var saved = localStorage.getItem('waTestKey');
+    if (saved) { $('key').value = saved; $('remember').checked = true; }
+  } catch (e) {}
+
+  // ── Live number parsing (mirrors the server) ──────────────────────────────
+  function normalize(raw) {
+    var s = String(raw).replace(/\D+/g, '');
+    if (!s) return null;
+    if (s.length === 10) s = '91' + s;
+    if (s.length < 11 || s.length > 15) return null;
+    return s;
+  }
+
+  // Mirrors splitNumbers() on the server: split on record separators, treat a
+  // line as ONE number unless its digits overflow a phone number.
+  function splitNumbers(text) {
+    var out = [];
+    String(text || '').split(/[\n\r,;\t|]+/).forEach(function (chunk) {
+      var t = chunk.trim();
+      if (!t) return;
+      if (t.replace(/\D+/g, '').length <= 15) { out.push(t); return; }
+      t.split(/\s+/).forEach(function (p) { if (p.trim()) out.push(p.trim()); });
+    });
+    return out;
+  }
+
+  function parseNumbers() {
+    var parts = splitNumbers($('numbers').value);
+    var seen = {}, valid = [], bad = [], dupes = 0;
+    for (var i = 0; i < parts.length; i++) {
+      var t = parts[i].trim();
+      if (!t) continue;
+      var n = normalize(t);
+      if (!n) { if (bad.length < 12) bad.push(t); else bad.push(''); continue; }
+      if (seen[n]) { dupes++; continue; }
+      seen[n] = 1; valid.push(n);
+    }
+    return { valid: valid, bad: bad, dupes: dupes };
+  }
+
+  function refresh() {
+    var p = parseNumbers();
+    $('cValid').textContent = p.valid.length;
+    $('cDupes').textContent = p.dupes;
+    $('cBad').textContent = p.bad.length;
+    $('badSamples').textContent = p.bad.length
+      ? 'invalid: ' + p.bad.filter(Boolean).slice(0, 12).join('  ') + (p.bad.length > 12 ? '  …' : '')
+      : '';
+    $('send').textContent = $('dryRun').checked
+      ? 'Run dry run'
+      : 'SEND to ' + p.valid.length + ' number' + (p.valid.length === 1 ? '' : 's');
+    $('send').style.background = $('dryRun').checked ? '' : '#c02c2c';
+    $('send').style.borderColor = $('dryRun').checked ? '' : '#c02c2c';
+  }
+
+  $('numbers').addEventListener('input', refresh);
+  $('dryRun').addEventListener('change', refresh);
+  refresh();
+
+  // ── Send ──────────────────────────────────────────────────────────────────
+  $('send').addEventListener('click', function () {
+    var p = parseNumbers();
+    var dry = $('dryRun').checked;
+    var key = $('key').value.trim();
+
+    if (!key) { alert('Enter the test passcode first.'); return; }
+    if (!p.valid.length) { alert('No valid numbers in the list.'); return; }
+    if (!dry && !confirm(
+      'This sends a REAL WhatsApp campaign to ' + p.valid.length + ' number(s).\n\n' +
+      'Template: ' + $('template').value + '\nCampaign: ' + $('campaign').value + '\n\nContinue?'
+    )) return;
+
+    try {
+      if ($('remember').checked) localStorage.setItem('waTestKey', key);
+      else localStorage.removeItem('waTestKey');
+    } catch (e) {}
+
+    $('send').disabled = true;
+    $('busy').textContent = dry ? 'validating…' : 'sending…';
+
+    fetch(BASE + '/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-test-key': key },
+      body: JSON.stringify({
+        numbers: p.valid,
+        campaignName: $('campaign').value,
+        templateId: $('template').value,
+        message: $('message').value,
+        batchSize: Number($('batch').value) || undefined,
+        batchDelayMs: Number($('delay').value),
+        dryRun: dry
+      })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); })
+      .then(function (out) { render(out.status, out.body); })
+      .catch(function (e) { render(0, { error: String(e) }); })
+      .then(function () { $('send').disabled = false; $('busy').textContent = ''; });
+  });
+
+  $('clear').addEventListener('click', function () { $('resultCard').style.display = 'none'; });
+
+  function render(status, b) {
+    $('resultCard').style.display = '';
+    var head;
+    if (b && b.error) {
+      head = '<span class="pill bad">HTTP ' + status + '</span> &nbsp;' + esc(b.error);
+    } else if (b && b.dryRun) {
+      head = '<span class="pill warn">dry run — nothing sent</span> &nbsp;' +
+        b.accepted + ' recipients in ' + b.batchCount + ' batch(es)';
+    } else {
+      head = '<span class="pill ' + (b.allOk ? 'ok' : 'bad') + '">' +
+        (b.allOk ? 'sent' : 'partial / failed') + '</span> &nbsp;' +
+        b.accepted + ' recipients in ' + b.batchCount + ' batch(es)';
+    }
+    if (b && typeof b.duplicatesRemoved === 'number') {
+      head += ' &nbsp;·&nbsp; <span class="kv">' + b.duplicatesRemoved + ' dupes, ' +
+              b.invalidCount + ' invalid dropped</span>';
+    }
+    $('resultSummary').innerHTML = head;
+
+    var lines = '';
+    if (b && b.results) {
+      for (var i = 0; i < b.results.length; i++) {
+        var r = b.results[i];
+        lines += '<div class="res-line"><span class="pill ' + (r.ok ? 'ok' : 'bad') + '">' +
+          (r.status === 'dry-run' ? 'dry' : r.status) + '</span>' +
+          '<span>batch ' + r.batch + ' · ' + r.count + ' numbers</span>' +
+          '<span class="kv">' + esc(r.campaignName) + '</span></div>';
+      }
+    }
+    $('resultLines').innerHTML = lines;
+    $('resultJson').textContent = JSON.stringify(b, null, 2);
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+})();
+</script>
+</body>
+</html>

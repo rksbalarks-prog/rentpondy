@@ -23,6 +23,8 @@ import firebaseAdmin from './config/firebaseAdmin.js';
 
 // WhatsApp (SmartGrowth AI campaign API) — internal send routes
 import whatsappCloudRoutes from "./routes/whatsappWebhook.js";
+// WhatsApp bulk-send test console (additive, passcode-gated, self-contained)
+import whatsappTestRoutes from "./WhatsappTest/WhatsappTestRouter.js";
 
 // Import all your routers
 import AddRouters from './AddRouters.js';
@@ -834,6 +836,13 @@ app.use("/PPC", RcmRouter); // Call Management (/process/dashboard/rp.wfh) route
 // Both send routes enforce their own x-api-key (WA_INTERNAL_API_KEY).
 app.use(whatsappCloudRoutes);
 app.use("/PPC", whatsappCloudRoutes);
+
+// WhatsApp bulk-send TEST console — /whatsapp-test (page), /whatsapp-test/config,
+// /whatsapp-test/send. Passcode-gated (WHATSAPP_TEST_KEY). Mounted at both root
+// and /PPC for the same reason as the routes above.
+//   https://rentpondy.com/PPC/whatsapp-test
+app.use(whatsappTestRoutes);
+app.use("/PPC", whatsappTestRoutes);
 
 // AI voice + chat assistant: mounts /api/assistant + the lean search endpoint.
 assistant.mount(app);

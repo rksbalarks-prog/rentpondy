@@ -207,6 +207,7 @@ import PointsPayLater from './PointsPricing/PointsPayLater';
 import PointsSettings from './PointsPricing/PointsSettings';
 import PointsPayU from './PointsPricing/PointsPayU';
 import PointsRefundRequests from './PointsPricing/PointsRefundRequests';
+import PointsPopupPlans from './PointsPricing/PointsPopupPlans';
 import RentStaffReport from './RentStaffReport';
 import DataAdded from './DataAdded';
 import { FollowupProvider } from './contexts/FollowupContext';
@@ -417,6 +418,7 @@ const routes = [
   { path: "/points-payu",               element: <PointsPayU />,                 permissionKey: "Points PayU" },
   { path: "/points-settings",           element: <PointsSettings />,             permissionKey: "Points Settings" },
   { path: "/points-refunds",            element: <PointsRefundRequests />,       permissionKey: "Points Refunds" },
+  { path: "/points-popup-plans",        element: <PointsPopupPlans />,           permissionKey: "Points Popup" },
   { path: "/rent-staff-report",         element: <RentStaffReport />,            permissionKey: "Rent Staff Report" },
 ];
 

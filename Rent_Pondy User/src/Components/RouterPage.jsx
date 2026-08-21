@@ -165,6 +165,7 @@ import PointsHistory from './PointsHistory';
 import PayUPointsForm from './PayUPointsPayment/PayUPointsForm';
 import PaymentSuccessPoints from './PayUPointsPayment/PaymentSuccessPoints';
 import PaymentFailurePoints from './PayUPointsPayment/PaymentFailurePoints';
+import SeoPage from '../seo/SeoPage';
 
 export default function RouterPage() {
 
@@ -231,19 +232,19 @@ export default function RouterPage() {
     <Route path="*" element={<NotFound />} />
     <Route path='/my' element={ <MyProperty  /> } />
         <Route path='/new-property' element={ <NewProperty  /> } />
-        <Route path='/add-form' element={<AddProps/>}/>
+        <Route path='/add-form' element={<SeoPage path='/add-form'><AddProps/></SeoPage>}/>
         {/* <Route path='/edit-form' element={ <EditForm  /> } /> */}
         <Route path='/detail/:rentId' element={ <Details  /> } />
-        <Route path='/plans' element={ <PricingPlans  /> } />
+        <Route path='/plans' element={ <SeoPage path='/plans'><PricingPlans  /></SeoPage> } />
         <Route path='/add-plan' element={ <AddPricingPlans  /> } />
-        <Route path='/about' element={<About />} />
-        <Route path='/refund-policy' element={<RefundPolicy />} />
+        <Route path='/about' element={<SeoPage path='/about'><About /></SeoPage>} />
+        <Route path='/refund-policy' element={<SeoPage path='/refund-policy'><RefundPolicy /></SeoPage>} />
         <Route path='/about-mobile' element={<AboutMobile />} />
         <Route path='/refund-mobile' element={<RefundMobile />} />
-        <Route path='/privacy-policy' element={<PrivacyPolicy />} />
+        <Route path='/privacy-policy' element={<SeoPage path='/privacy-policy'><PrivacyPolicy /></SeoPage>} />
         <Route path='/interest' element={ <InterestStatus  /> } />
-        <Route path='/business' element={<BusinessOpportunity />} />
-        <Route path='/support' element={<Support  />} />
+        <Route path='/business' element={<SeoPage path='/business'><BusinessOpportunity /></SeoPage>} />
+        <Route path='/support' element={<SeoPage path='/support'><Support  /></SeoPage>} />
         <Route path='/our-support' element={<OurSupport  />} />
         <Route path='/my-profile/:phoneNumber' element={ <MyProfile  /> } />
         <Route path='/my-plan' element={ <MyPlan /> } />

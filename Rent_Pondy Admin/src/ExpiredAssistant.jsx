@@ -10,6 +10,8 @@ import PhoneCell from './components/PhoneCell';
 
 const ExpiredBuyerPlans = () => {
   const [data, setData] = useState([]);
+  // Records expired by hand from the Active Tenant Assistance page (additive).
+  const [manualExpired, setManualExpired] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
 
@@ -72,8 +74,37 @@ const ExpiredBuyerPlans = () => {
     }
   };
 
+  // Records an admin expired by hand from the Active Tenant Assistance page.
+  // Kept separate from the plan-driven list above because the two are found
+  // differently: that one derives expiry from the plan's end date, this one is
+  // an explicit action recorded on the record itself (raExpiredAt / raExpiredBy).
+  const fetchManuallyExpired = async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_URL}/manually-expired-buyerAssistance-rent`
+      );
+      setManualExpired(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch manually expired assistance:', error.message);
+    }
+  };
+
+  const handleRestoreExpired = async (Ra_Id) => {
+    if (!window.confirm(`Restore Ra_Id ${Ra_Id} back to Active?`)) return;
+    try {
+      await axios.put(`${process.env.REACT_APP_API_URL}/unmark-buyerAssistance-expired-rent`, {
+        raIds: [Ra_Id],
+      });
+      setMessage(`Ra_Id ${Ra_Id} restored to Active.`);
+      setManualExpired((prev) => prev.filter((item) => item.Ra_Id !== Ra_Id));
+    } catch (error) {
+      setMessage(`Error restoring Ra_Id ${Ra_Id}: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
   useEffect(() => {
     fetchExpiredPlans();
+    fetchManuallyExpired();
   }, []);
     const tableRef = useRef();
   
@@ -248,6 +279,74 @@ const ExpiredBuyerPlans = () => {
             </div>
           </div>
         ))
+      )}
+
+      {/* Manually expired — marked from the Active Tenant Assistance page */}
+      <h5 className="mt-5 mb-3 text-center">Manually Expired Tenant Assistance</h5>
+      {manualExpired.length === 0 ? (
+        <div className="text-center text-muted">
+          No records have been marked as expired by hand.
+        </div>
+      ) : (
+        <div className="card mb-4 shadow-sm">
+          <div className="card-header bg-warning">
+            <strong>{manualExpired.length}</strong> record
+            {manualExpired.length === 1 ? '' : 's'} expired by an admin. Restore puts one
+            back on the Active list.
+          </div>
+          <div className="card-body p-0">
+            <div className="table-responsive">
+              <table className="table table-bordered table-striped mb-0">
+                <thead className="table-secondary">
+                  <tr>
+                    <th>#</th>
+                    <th>Ra_Id</th>
+                    <th>Tentant Name</th>
+                    <th>Phone</th>
+                    <th>City</th>
+                    <th>Area</th>
+                    <th>Min Price</th>
+                    <th>Max Price</th>
+                    <th>Property Mode</th>
+                    <th>Type</th>
+                    <th>Created</th>
+                    <th>Expired On</th>
+                    <th>Expired By</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {manualExpired.map((item, idx) => (
+                    <tr key={item._id || item.Ra_Id}>
+                      <td>{idx + 1}</td>
+                      <td>{item.Ra_Id}</td>
+                      <td>{item.raName}</td>
+                      <td><PhoneCell phone={item.phoneNumber} type="tenant" raId={item.Ra_Id} /></td>
+                      <td>{item.city}</td>
+                      <td>{item.area}</td>
+                      <td>{item.minPrice}</td>
+                      <td>{item.maxPrice}</td>
+                      <td>{item.propertyMode}</td>
+                      <td>{item.propertyType}</td>
+                      <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}</td>
+                      <td>{item.raExpiredAt ? new Date(item.raExpiredAt).toLocaleString() : 'N/A'}</td>
+                      <td>{item.raExpiredBy || '—'}</td>
+                      <td>
+                        <button
+                          onClick={() => handleRestoreExpired(item.Ra_Id)}
+                          className="d-flex align-items-center btn btn-outline-primary btn-sm"
+                          title="Restore to Active"
+                        >
+                          <FaUndo className="me-1" /> Restore
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

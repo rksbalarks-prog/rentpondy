@@ -188,3 +188,54 @@ export function propertyJsonLd(p = {}) {
       : {}),
   };
 }
+
+/**
+ * Title / description for the app's static marketing and legal pages.
+ *
+ * These routes render plain components with no <Seo> of their own, so they used
+ * to inherit the one hardcoded canonical in public/index.html and told Google
+ * "index the homepage instead of me" — while sitemap-pages.xml
+ * (PPC/Seo/SeoRouter.js) was submitting them for indexing. That contradiction is
+ * what Search Console reports as "Alternate page with proper canonical tag", and
+ * it kept every one of these pages out of the index.
+ *
+ * Keyed by the exact route path; the canonical is derived from the key, so a
+ * page listed here is always self-canonical. Consumed by SeoPage.jsx.
+ */
+export const STATIC_PAGE_SEO = {
+  '/plans': {
+    title: `Rental Listing Plans & Pricing | ${BRAND}`,
+    description:
+      'Compare RentPondy plans for property owners — listing duration, number of properties and tenant contacts included. Zero brokerage, pay only for what you post.',
+  },
+  '/add-form': {
+    title: `Post Your Property for Rent - Free | ${BRAND}`,
+    description:
+      'List your house, apartment, commercial space or land for rent in Pondicherry and Chennai. Add photos, rent and locality in minutes and reach tenants directly.',
+  },
+  '/about': {
+    title: `About Us - Zero Brokerage Rentals | ${BRAND}`,
+    description:
+      'RentPondy connects property owners in Pondicherry and Chennai directly with tenants — owner-posted listings, real photos and real rent, with no broker in between.',
+  },
+  '/support': {
+    title: `Support & Help Centre | ${BRAND}`,
+    description:
+      'Need help with a listing, a plan or your RentPondy account? Find answers to common questions and get in touch with the RentPondy support team.',
+  },
+  '/business': {
+    title: `Business Opportunity - Partner With Us | ${BRAND}`,
+    description:
+      'Partner with RentPondy. Explore business and franchise opportunities with Pondicherry and Chennai’s owner-direct rental property platform.',
+  },
+  '/privacy-policy': {
+    title: `Privacy Policy | ${BRAND}`,
+    description:
+      'How RentPondy collects, uses, stores and protects your personal information, and the choices you have over your data.',
+  },
+  '/refund-policy': {
+    title: `Refund & Cancellation Policy | ${BRAND}`,
+    description:
+      'RentPondy’s refund and cancellation terms for listing plans and points purchases, including how to raise a refund request.',
+  },
+};

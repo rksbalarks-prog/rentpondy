@@ -18,7 +18,11 @@
     <meta name="description" content="Find houses, apartments, commercial spaces and land for rent in Pondicherry and Chennai. Owner-posted listings with real photos and rent - zero brokerage. New properties added daily." />
     <meta name="author" content="RentPondy" />
     <meta name="robots" content="index,follow,max-image-preview:large" />
-    <link rel="canonical" href="https://rentpondy.com/" />
+    <!-- No canonical / og:url here on purpose. react-helmet only replaces tags it
+         created itself (it matches on data-react-helmet), so a hardcoded one
+         SURVIVES and every route ends up with two conflicting canonicals after
+         render - Google then ignores both. Each page sets its own through <Seo>
+         (src/seo/Seo.jsx); a route without one simply self-canonicalises. -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -29,7 +33,6 @@
     <meta property="og:title" content="Rent Pondy | Rental Houses &amp; Commercial Property in Pondicherry" />
     <meta property="og:description" content="Owner-posted houses, apartments, commercial spaces and land for rent in Pondicherry and Chennai. Zero brokerage." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://rentpondy.com/" />
     <meta property="og:image" content="%PUBLIC_URL%/rentpondylogo.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Rent Pondy | Rental Houses &amp; Commercial Property in Pondicherry" />

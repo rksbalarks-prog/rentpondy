@@ -173,8 +173,11 @@ ${maps
 // Hand-maintained marketing / legal pages that live in the React app.
 const STATIC_PAGES = [
   { path: '/', priority: '1.0', changefreq: 'daily' },
-  { path: '/pondicherry', priority: '0.9', changefreq: 'daily' },
-  { path: '/chennai', priority: '0.8', changefreq: 'daily' },
+  // NOT listed: /pondicherry and /chennai. Both render MobileViews, whose <Seo>
+  // canonicalises them to the server-rendered /rent/pondicherry and
+  // /rent/chennai — which sitemap-locations.xml already submits. Listing the
+  // app URLs here as well asked Google to index a page that points elsewhere,
+  // which it reports as "Alternate page with proper canonical tag".
   { path: '/add-form', priority: '0.7', changefreq: 'monthly' },
   { path: '/plans', priority: '0.6', changefreq: 'monthly' },
   { path: '/about', priority: '0.5', changefreq: 'yearly' },

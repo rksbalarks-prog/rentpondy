@@ -62,6 +62,7 @@ const ALL_FILES = [
   { key: "Points PayU", label: "Points PayU Records", section: "Points Pricing" },
   { key: "Points Refunds", label: "Points Refund Requests", section: "Points Pricing" },
   { key: "Points Settings", label: "Points Settings", section: "Points Pricing" },
+  { key: "Points Popup", label: "No Points Popup - Plans", section: "Points Pricing" },
   // // Marketing Team
   // { key: "Add Property Marketing", label: "Add Property (Marketing)", section: "Marketing Team" },
   // Tenant Assistant

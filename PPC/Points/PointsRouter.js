@@ -310,11 +310,40 @@ router.get('/points-config-public', async (req, res) => {
     const PointsConfig = loadPointsConfig();
     let cfg = await PointsConfig.findById('points-config');
     if (!cfg) cfg = await PointsConfig.create({ _id: 'points-config' });
+
+    // Plans for the app's "no points" popup. The admin picks these on the
+    // Points Pricing > No Points Popup screen; hidden or deleted plans are
+    // dropped here rather than in the app, so the popup can never advertise
+    // something that is no longer on sale.
+    const PLAN_FIELDS = { name: 1, description: 1, price: 1, points: 1, popular: 1 };
+    const chosenIds = Array.isArray(cfg.popupPlanIds) ? cfg.popupPlanIds.map(String) : [];
+    let popupPlans = [];
+    if (chosenIds.length) {
+      const rows = await PointsPlan.find(
+        { _id: { $in: chosenIds }, status: 'active' },
+        PLAN_FIELDS
+      ).lean();
+      // Preserve the admin's ordering, which the $in query does not guarantee.
+      const byId = new Map(rows.map((r) => [String(r._id), r]));
+      popupPlans = chosenIds.map((id) => byId.get(id)).filter(Boolean);
+    }
+    // No choice made, or every chosen plan has since been hidden: fall back to
+    // the cheapest active plan so the popup always has something to sell.
+    const popupPlansSource = popupPlans.length ? 'admin' : 'fallback';
+    if (!popupPlans.length) {
+      popupPlans = await PointsPlan.find({ status: 'active' }, PLAN_FIELDS)
+        .sort({ price: 1, sortOrder: 1 })
+        .limit(1)
+        .lean();
+    }
+
     return res.json({
       success: true,
       pointsPerContactReveal: cfg.pointsPerContactReveal || 10,
       pointsPerTenantContactReveal: cfg.pointsPerTenantContactReveal || 20,
       pointsPerTouristContactReveal: cfg.pointsPerTouristContactReveal || 10,
+      popupPlans,
+      popupPlansSource,
     });
   } catch (err) {
     console.error('points-config-public error:', err);
