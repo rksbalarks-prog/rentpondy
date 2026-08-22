@@ -81,6 +81,7 @@ const ALL_FILES = [
   { key: "Search Pincode", label: "Search Pincode Pondicherry", section: "RENT Property" },
   { key: "Search Pincode Chennai", label: "Search Pincode Chennai", section: "RENT Property" },
   { key: "Add Property", label: "Add", section: "RENT Property" },
+  { key: "Adexpress Import", label: "Adexpress Import (newspaper ads)", section: "RENT Property" },
   { key: "Manage Property", label: "Manage", section: "RENT Property" },
   { key: "Approved Property", label: "Approved", section: "RENT Property" },
   { key: "PreApproved Property", label: "PreApproved", section: "RENT Property" },

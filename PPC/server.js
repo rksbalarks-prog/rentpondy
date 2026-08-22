@@ -102,6 +102,9 @@ import PMRouter from "./PmWhatsapp/PMRouter.js"; // PM WhatsApp Credentials & Me
 import PmBulkRouter from "./PmBulkWhatsapp/PmBulkRouter.js"; // PM Bulk WhatsApp routes
 import BulkWhatsappRouter from "./BulkWhatsapp/BulkWhatsappRouter.js"; // Admin Bulk WhatsApp (Wasender) routes
 import RcmRouter from "./Rcm/RcmRouter.js"; // Call Management (/process/dashboard/rp.wfh) routes
+// Adexpress classified-weekly importer (additive: own collections + own routes)
+import AdExpressRouter from './AdExpress/AdExpressRouter.js';
+import adExpressSchedule from './AdExpress/schedule.js';
 // import RoleAccessRouter from './RoleAccess/RoleAccessRouter.js'; // Role Access routes
 
 // AI voice + chat assistant (additive layer — see ./assistant/).
@@ -826,6 +829,7 @@ app.use("/PPC", PMRouter); // PM WhatsApp: /send-text, /pm-history, /pm-stats
 app.use("/PPC", PmBulkRouter); // PM Bulk WhatsApp routes
 app.use("/PPC/api/bulk-whatsapp", BulkWhatsappRouter); // Admin Bulk WhatsApp (campaign API + large file uploads)
 app.use("/PPC", RcmRouter); // Call Management (/process/dashboard/rp.wfh) routes
+app.use("/PPC", AdExpressRouter); // Adexpress import: /adexpress/* (staging only)
 // app.use("/PPC", RoleAccessRouter); // Roles Access routes
 
 // ── WhatsApp (SmartGrowth AI campaign API) ───────────────────────────────────
@@ -870,4 +874,6 @@ app.listen(PORT, () => {
   // Same for the daily admin-report PDF and the detail spreadsheet.
   adminReportMail.start();
   adminExcelMail.start();
+  // Nightly Adexpress pickup: newest issue -> rent ads -> PreApproved.
+  adExpressSchedule.start();
 });

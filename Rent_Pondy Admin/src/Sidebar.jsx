@@ -276,7 +276,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         )}
 
         {/* ── RENT PROPERTY ── */}
-        {sv(["Search Property", "Search Pincode", "Search Pincode Chennai", "Add Property", "Manage Property", "Approved Property", "PreApproved Property", "Pending Property", "Removed Property", "Expire Property", "Delete Properties", "Feature Property", "Paid Property", "Free Property", "Set Property Message", "Fetch All Address", "Get All Property Datas", "Data Added"]) && (
+        {sv(["Search Property", "Search Pincode", "Search Pincode Chennai", "Add Property", "Manage Property", "Approved Property", "PreApproved Property", "Pending Property", "Removed Property", "Expire Property", "Delete Properties", "Feature Property", "Paid Property", "Free Property", "Set Property Message", "Fetch All Address", "Get All Property Datas", "Data Added", "Adexpress Import"]) && (
           <>
             <li className="p-3 mt-2 text-white" onClick={() => toggleMenu("ppc")} style={{ borderRadius: "5px", background: "#8BC34A", cursor: "pointer" }}>
               <FaBuilding size={20} style={{ marginRight: "10px" }} />RENT Property
@@ -287,6 +287,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               {can("Search Pincode Chennai") && getAdminBase() !== "PY" && <li className="p-0 mt-2"><NavLink to="/dashboard/search-pincode-chennai" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaSearch />Search Pincode Chennai</NavLink></li>}
               {can("Add Property") && <li className="p-0 mt-2"><NavLink to="/dashboard/add-car" className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaPlusCircle />Add</NavLink></li>}
               {can("Add Property") && <li className="p-0 mt-2"><NavLink to="/dashboard/bulk-upload-property" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaFileInvoice />Bulk Upload</NavLink></li>}
+              {can("Adexpress Import") && <li className="p-0 mt-2"><NavLink to="/dashboard/adexpress-import" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaFileInvoice />Adexpress Import</NavLink></li>}
               {can("Manage Property") && <li className="p-0 mt-2"><NavLink to="/dashboard/property-list" className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaPlusCircle />Manage</NavLink></li>}
               {can("Approved Property") && <li className="p-0 mt-2"><NavLink to="/dashboard/approved-car" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaUserCheck />Approved</NavLink></li>}
               {can("PreApproved Property") && <li className="p-0 mt-2"><NavLink to="/dashboard/preapproved-car" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaUserCheck />PreApproved</NavLink></li>}

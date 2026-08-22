@@ -13,6 +13,7 @@ import Statistics from "./Statistics";
 import AdminNotification from "./AdminNotification";
 import AddCar from "./AddCar";
 import BulkUploadProperty from "./BulkUploadProperty";
+import AdExpressImport from "./AdExpressImport";
 import AdminLog from "./AdminLog";
 import AgentCar from "./AgentCar";
 import AllCar from "./AllCar";
@@ -223,6 +224,7 @@ const routes = [
   { path: "/admin-notification",          element: <AdminNotification />,         permissionKey: "Admin Notification" },
   { path: "/add-car",                     element: <AddCar />,                    permissionKey: "Add Property" },
   { path: "/bulk-upload-property",        element: <BulkUploadProperty />,        permissionKey: "Add Property" },
+  { path: "/adexpress-import",            element: <AdExpressImport />,           permissionKey: "Adexpress Import" },
   { path: "/adminlog",                    element: <AdminLog />,                  permissionKey: "AdminLog" },
   { path: "/agent-car",                   element: <AgentCar />,                  permissionKey: "Agent Property" },
   { path: "/all-car",                     element: <AllCar />,                    permissionKey: null },
