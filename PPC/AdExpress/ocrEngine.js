@@ -21,6 +21,7 @@
 // Pure JS throughout (jpeg-js only) — deliberately no sharp and no canvas, for
 // the same reason the rest of this folder avoids them.
 
+const fs = require('fs');
 const path = require('path');
 const jpeg = require('jpeg-js');
 const config = require('./config');
@@ -149,8 +150,19 @@ async function buildWorker(name) {
   const spec = PROFILES[name];
   const { createWorker } = tesseract();
 
+  // Tesseract will not create the cache directory itself: given a path that
+  // does not exist it silently falls back to the process's cwd and drops
+  // eng.traineddata / tam.traineddata there instead. That still works, but it
+  // litters the backend root and makes the cache impossible to pre-seed.
+  const dir = cacheDir();
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch {
+    /* fall back to Tesseract's own default rather than failing the read */
+  }
+
   const worker = await createWorker(spec.langs, 1, {
-    cachePath: cacheDir(),
+    cachePath: dir,
     logger: () => {},
     errorHandler: () => {},
   });
