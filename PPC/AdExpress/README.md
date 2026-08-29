@@ -183,12 +183,15 @@ pixels and the VPS has no room for two.
 
 ## Environment
 
-Everything has a working default; the only variable that must exist is the
-OpenAI key, which the AI assistant already needs.
+Everything has a working default. Since the reader defaults to `local`, no key
+is needed at all unless you switch back to `ADEXPRESS_READER=openai`.
 
 | Variable | Default | Notes |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | — | required; shared with the assistant |
+| `ADEXPRESS_READER` | `local` | `local` = Tesseract, no tokens; `openai` = vision calls |
+| `ADEXPRESS_OCR_WORKERS` | `2` | Tesseract workers per profile; each costs memory |
+| `ADEXPRESS_OCR_MIN_CONFIDENCE` | `30` | below this a digit reading cannot carry a number to unanimity |
+| `OPENAI_API_KEY` | — | required only when `ADEXPRESS_READER=openai` |
 | `ADEXPRESS_ENABLED` | `true` | `false` makes every route answer 503 |
 | `ADEXPRESS_CRON_ENABLED` | `true` | arm the nightly pickup |
 | `ADEXPRESS_CRON` | `40 2 * * *` | when it runs |
@@ -211,19 +214,67 @@ OpenAI key, which the AI assistant already needs.
 | `ADEXPRESS_KEEP_PDF` | `true` | `false` deletes the PDF after reading |
 | `ADEXPRESS_DEFAULT_BASE` | `PY` | city section imported rows land in |
 
-## Cost, and why it is slow
+## Two readers
 
-Measured on the 8 Aug 2026 Pondicherry issue, one property page (66 ad boxes):
-**84k tokens, about 3 minutes**. A typical issue has 4–6 property pages, so
-roughly 350–500k tokens and 12–18 minutes.
+A "reader" turns a scanned ad box into fields. There are two, they export the
+same five functions with the same shapes, and `ADEXPRESS_READER` picks one:
 
-The clock, not the money, is the constraint: the OpenAI account this runs
-against is capped at **30,000 tokens per minute**, so 84k tokens cannot take less
-than three minutes no matter how much is run in parallel. `vision.js` keeps a
-rolling one-minute budget and paces itself under `ADEXPRESS_TPM`; before that
-existed, bursts blew the limit and silently lost half a page of ads. Raising the
-account's rate tier and `ADEXPRESS_TPM` together is the one change that makes
-this materially faster.
+| | `local` (default) | `openai` |
+|---|---|---|
+| module | `ocr.js` + `ocrEngine.js` + `fields.js` | `vision.js` |
+| engine | Tesseract on this machine | gpt-4o vision |
+| cost per issue | nothing | 350–500k tokens |
+| time per page | ~30 s | ~3 min |
+| needs a key | no | `OPENAI_API_KEY` |
+| rate limited | no | 30k tokens/min |
+
+`processor.js` picks one at require time and nothing downstream knows which it
+got. Set `ADEXPRESS_READER=openai` to go back.
+
+### How the local reader keeps the phone numbers honest
+
+The safety rule does not change: **a number is published only when every
+independent reading agrees**, decided by `resolvePhones` exactly as before.
+What changes is where the independence comes from. The model version made the
+three readings different by nudging the prompt. An OCR engine ignores prompts,
+so the three passes differ in the *pixels* instead — `ocrEngine.PROFILES`
+gives each one a different scale and threshold (as printed; 2× with a hard
+threshold; 3× with sparse-text segmentation).
+
+Two things that were learned the hard way and are easy to undo by accident:
+
+* **Do not grab any ten digits in a row.** One character of noise read as a
+  digit slides the window: a printed `70942 20892` came back as `6709422089`.
+  `fields.detectPhones` anchors on the printed 5+5 grouping instead.
+* **Do not gate a reading on Tesseract's mean confidence.** A digits-only pass
+  throws away most of the box, so its page mean sits at 20–40 even when the
+  number is read perfectly; gating on it marked correct readings unreadable and
+  `resolvePhones` then refused numbers all three passes agreed on.
+  `ocrEngine.digitConfidence` scores only the words containing digits.
+
+### Measured
+
+Against the 49 saved ad crops from the 8 Aug 2026 issue:
+
+* **7/7** phone numbers exactly correct on the hand-verified sample, **7/7**
+  deal types correct, **0** cases of the passes agreeing on a wrong number.
+* **38/46** boxes reached `verified`; the other 8 went to the review queue,
+  which is where they belong.
+* **1.7 s per ad** for all four passes — 49 crops in 83 s, against roughly
+  3 minutes per 66-box page for the model.
+* On the one number that forced the unanimity rule in the first place, the
+  printed `9994114660` that majority voting once read as `9994141660`, the
+  local reader returns the printed digits.
+
+Tamil is read with the `tam` traineddata, which is what decides rent from sale
+on about a fifth of the boxes. It is downloaded once and cached under
+`uploads/adexpress/tessdata/` — pre-seed that folder on a server with no
+outbound access to the CDN.
+
+`tesseract.js` **must stay in `PPC/package.json`.** A package that is present in
+`node_modules` but absent from `package.json` is pruned by the next
+`npm install <anything>`, which is exactly how the server lost `sharp` and
+`tesseract.js` once before and returned 502 on every route.
 
 Reading is a background job — start it and come back.
 

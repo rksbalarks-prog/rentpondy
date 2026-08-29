@@ -61,6 +61,21 @@ const config = {
   maxPdfBytes: int(process.env.ADEXPRESS_MAX_PDF_BYTES, 60 * 1024 * 1024),
 
   // ── OCR / extraction ─────────────────────────────────────────────────────
+  // Which reader turns a scanned box into fields:
+  //   'local'  Tesseract on this machine — no API key, no tokens (default)
+  //   'openai' the original vision calls, kept as a fallback
+  // Both implement the same interface; see ocr.js and vision.js.
+  reader: (process.env.ADEXPRESS_READER || 'local').toLowerCase(),
+
+  ocr: {
+    // Tesseract workers held per profile. Each one costs memory and a second of
+    // start-up, and pages are read one at a time, so two is plenty on the VPS.
+    workers: int(process.env.ADEXPRESS_OCR_WORKERS, 2),
+    // Below this the reading is treated as unreliable and cannot carry a phone
+    // number to unanimity on its own.
+    minConfidence: int(process.env.ADEXPRESS_OCR_MIN_CONFIDENCE, 30),
+  },
+
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   openaiBaseUrl: (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, ''),
   // Vision model used for both page triage and ad extraction. gpt-4o reads the
@@ -127,11 +142,15 @@ const config = {
   // is allowed to publish without a person confirming each number.
   cron: {
     enabled: bool(process.env.ADEXPRESS_CRON_ENABLED, true),
-    // 02:40 IST — after the nightly backup, well clear of the report mails.
-    expression: process.env.ADEXPRESS_CRON || '40 2 * * *',
+    // Saturday 16:30 IST. The paper is published on Saturday, so the job runs
+    // once a week, after it is out.
+    expression: process.env.ADEXPRESS_CRON || '30 16 * * 6',
     timezone: process.env.ADEXPRESS_CRON_TZ || 'Asia/Kolkata',
-    // How many recent issues to look through for one that has not been read.
+    // How many recent issues to list when working out which one is newest.
     lookBack: int(process.env.ADEXPRESS_CRON_LOOKBACK, 4),
+    // Only ever read the newest issue. If it has already been read the run does
+    // nothing — it never works backwards through the archive.
+    latestOnly: bool(process.env.ADEXPRESS_CRON_LATEST_ONLY, true),
     // false = read and stage only, publish nothing.
     autoPublish: bool(process.env.ADEXPRESS_CRON_AUTO_IMPORT, true),
     // 'verified'  — publish numbers every reading agreed on (default)
@@ -151,6 +170,39 @@ const config = {
     areaUnit: process.env.ADEXPRESS_AREA_UNIT || 'Sq.ft',
     brand: process.env.ADEXPRESS_CARD_BRAND || 'Rent Pondy',
   },
+  // ── Straight through to Approved ─────────────────────────────────────────
+  // After importing, raise a follow-up and a bill for each new property. The
+  // bill is what sets status 'active', which is what puts the listing on the
+  // Approved page and in the public feed. Defaults mirror what the office
+  // already does for this kind of lead (a Free plan on a Free payment type).
+  autoApprove: {
+    enabled: bool(process.env.ADEXPRESS_AUTO_APPROVE, true),
+    followupStatus: process.env.ADEXPRESS_FOLLOWUP_STATUS || 'Not Decided',
+    followupType: process.env.ADEXPRESS_FOLLOWUP_TYPE || 'Data Followup',
+    // The endpoint caps remarks at 50 characters.
+    remarks: (process.env.ADEXPRESS_FOLLOWUP_REMARKS || 'Adexpress import').slice(0, 50),
+    billOffice: process.env.ADEXPRESS_BILL_OFFICE || 'AUROBINDO',
+    billPlan: process.env.ADEXPRESS_BILL_PLAN || 'Free',
+    billPaymentType: process.env.ADEXPRESS_BILL_PAYMENT_TYPE || 'Free',
+    billAmount: int(process.env.ADEXPRESS_BILL_AMOUNT, 0),
+    billValidity: int(process.env.ADEXPRESS_BILL_VALIDITY, 180),
+    billNoOfAds: int(process.env.ADEXPRESS_BILL_NO_OF_ADS, 1),
+  },
+
+  // Base URL for the app's own REST surface, used when this module calls the
+  // existing publish / follow-up / bill endpoints rather than touching Mongo.
+  apiBase: (
+    process.env.ADEXPRESS_IMPORT_BASE ||
+    `http://127.0.0.1:${process.env.PORT || 5005}/PPC`
+  ).replace(/\/+$/, ''),
+
+  // ── Locality lookup (public records) ─────────────────────────────────────
+  // Only used when the local gazetteer cannot place an ad's locality. Asks
+  // India Post, then OpenStreetMap, and believes neither without a 605xxx
+  // Puducherry pincode. Answers are cached in Mongo forever.
+  geocodeEnabled: bool(process.env.ADEXPRESS_GEOCODE, true),
+  geocodeTimeoutMs: int(process.env.ADEXPRESS_GEOCODE_TIMEOUT_MS, 20000),
+
   // Where property photos live — the same folder the rest of the app uploads to.
   photoDir: process.env.ADEXPRESS_PHOTO_DIR || 'uploads',
 

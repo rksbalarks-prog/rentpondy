@@ -7,6 +7,8 @@
 // Indian number is dropped and the ad is flagged for review instead of being
 // silently imported with a wrong contact.
 
+const { resolveArea } = require('./locality');
+
 // Indian mobile numbers are 10 digits starting 6-9. Anything else (landlines,
 // half-read numbers) is kept aside so the reviewer can still see it.
 const MOBILE_RE = /^[6-9]\d{9}$/;
@@ -401,6 +403,12 @@ function withoutPhoneNumbers(text) {
 
 function toBulkUploadRow(ad, defaults = {}) {
   const place = EDITION_PLACE[ad.edition] || EDITION_PLACE.Pondicherry;
+  // Most specific text first: the extracted locality, then the fuller address,
+  // then the whole ad — an ad often names its area only in the body.
+  // `ad.resolvedLocality` is set by publish.js for the few ads the gazetteer
+  // could not place, from public records. The local map still wins.
+  const located =
+    resolveArea(ad.locality, ad.address, ad.rawText) || ad.resolvedLocality || null;
   // No contact numbers, and no mention of where the listing was sourced from —
   // this text is public.
   const descriptionBits = [
@@ -418,6 +426,10 @@ function toBulkUploadRow(ad, defaults = {}) {
     propertyType: ad.propertyType || '',
     rentalAmount: ad.rentAmount == null ? '' : ad.rentAmount,
     securityDeposit: ad.deposit == null ? '' : ad.deposit,
+    // Most classified ads print no rent — they expect you to ring up. The app
+    // already has a flag for exactly that, and the listing cards render it as
+    // "Call Owner", which is far better than the ₹0 a blank amount becomes.
+    callForRent: ad.rentAmount == null || ad.rentAmount <= 0 ? 'true' : 'false',
     bedrooms: ad.bedrooms || '',
     floorNo: ad.floorNo || '',
     totalArea: ad.areaSqft == null ? '' : ad.areaSqft,
@@ -426,7 +438,14 @@ function toBulkUploadRow(ad, defaults = {}) {
     state: place.state,
     district: place.district,
     city: place.city,
-    area: ad.locality || '',
+    // An ad prints a nagar and a landmark, not an area and a pincode — and the
+    // home tickers count by pincode while search matches area names, so raw ad
+    // text leaves the listing unreachable by either. Resolve it against the
+    // same gazetteer the Add Property form uses; when nothing matches, keep
+    // what was printed and leave the pincode empty rather than guessing.
+    area: located ? located.area : ad.locality || '',
+    pinCode: located ? located.pinCode : '',
+    // The ad's own wording is never lost — it stays as the address line.
     rentalPropertyAddress: ad.address || ad.locality || '',
     description: descriptionBits.join(' | ').slice(0, 1500),
     // Helper columns the bulk endpoint knowingly ignores, kept so the sheet /

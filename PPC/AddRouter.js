@@ -2866,13 +2866,19 @@ router.get('/fetch-active-users', async (req, res) => {
       ];
 
     const processedProperties = properties.map((property) => {
-      // Check if all required fields are filled
-      const isComplete = requiredFields.every(
-        (field) =>
-          property[field] !== undefined &&
-          property[field] !== null &&
-          String(property[field]).trim() !== ''
-      );
+      // A bulk-uploaded property has already been through admin review — it
+      // reached PreApproved, was billed, and only then became active. A
+      // newspaper ad never prints every field this form asks for, so holding it
+      // back here would mean a listing an admin has approved that no tenant can
+      // ever see. Those rows are listed regardless of the completeness gate.
+      const isComplete =
+        !!property.bulkUploadId ||
+        requiredFields.every(
+          (field) =>
+            property[field] !== undefined &&
+            property[field] !== null &&
+            String(property[field]).trim() !== ''
+        );
 
       // Find matching plan
       const matchedPlan = plans.find(plan =>
@@ -3173,9 +3179,23 @@ router.get('/fetch-active-users-datas-all-rent', async (req, res) => {
     ];
 
     const processedProperties = properties.map(property => {
-      const isComplete = requiredFields.every(
-        field => property[field] && String(property[field]).trim() !== ''
-      );
+      // Presence, not truthiness. A real 0 is a value: rentalAmount is 0 when no
+      // rent was quoted and totalArea is 0 when the area is unknown, and `0 &&`
+      // is false — so this page silently hid properties that were active, billed
+      // and complete. The identical gate in /bulk-upload-properties and in
+      // /properties/pre-approved-all-rent has always tested presence, which is
+      // why those pages listed the very rows this one dropped.
+      //
+      // Bulk-uploaded rows skip the gate outright: they reached PreApproved,
+      // were billed, and only then became active, so an admin has already
+      // decided they belong here. This matches /fetch-active-users, so the
+      // Approved list and what tenants actually see stay in step.
+      const isComplete =
+        !!property.bulkUploadId ||
+        requiredFields.every((field) => {
+          const value = property[field];
+          return value !== undefined && value !== null && String(value).trim() !== '';
+        });
 
       // 🧩 Step 1: Match plan
       const matchedPlan = plans.find(plan =>

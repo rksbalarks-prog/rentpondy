@@ -23,6 +23,8 @@ const path = require('path');
 
 const config = require('./config');
 const { toBulkUploadRow } = require('./normalize');
+const locality = require('./locality');
+const geocode = require('./geocode');
 const { renderPropertyCard } = require('./cardImage');
 const { AdExpressAd } = require('./AdExpressModel');
 const AddModel = require('../AddModel');
@@ -79,8 +81,50 @@ async function writeCard(ad, rentId) {
  * @param {object} options         { base, defaults, addedBy, addedByRole, forcePreApproved, trigger }
  * @returns {Promise<object>}      what the bulk endpoint said, plus card counts
  */
+/**
+ * Teach the locality resolver from the app's own listings.
+ *
+ * Staff have paired ~350 area names with pincodes over the years — a far wider
+ * and more current gazetteer than any list hardcoded here, and in their own
+ * vocabulary. Refreshed at most every 10 minutes; a failure is harmless, the
+ * curated map still applies.
+ */
+let learnedAt = 0;
+async function primeLocalities() {
+  if (Date.now() - learnedAt < 10 * 60 * 1000) return;
+  try {
+    const pairs = await AddModel.collection
+      .find(
+        { pinCode: { $nin: [null, ''] }, area: { $nin: [null, '', 'undefined'] } },
+        { projection: { area: 1, pinCode: 1 } }
+      )
+      .toArray();
+    locality.learn(pairs);
+    learnedAt = Date.now();
+  } catch (err) {
+    console.error('[AdExpress] could not learn areas from existing listings:', err.message);
+  }
+}
+
+/**
+ * For the handful of ads the gazetteer cannot place, ask public records once
+ * and hang the answer on the ad. Rate-limited and cached, so this is a few
+ * seconds on a first run and nothing at all thereafter.
+ */
+async function fillUnknownLocalities(ads) {
+  for (const ad of ads) {
+    if (locality.resolveArea(ad.locality, ad.address, ad.rawText)) continue;
+    const text = ad.locality || ad.address;
+    if (!text) continue;
+    const found = await geocode.lookup(text);
+    if (found) ad.resolvedLocality = { area: found.area, pinCode: found.pinCode };
+  }
+}
+
 async function publishAds(ads, options = {}) {
   if (!ads.length) return { insertedCount: 0, message: 'Nothing to publish.' };
+  await primeLocalities();
+  await fillUnknownLocalities(ads);
 
   const base = String(options.base || config.defaultBase).toUpperCase() === 'CH' ? 'CH' : 'PY';
   const forcePreApproved =
