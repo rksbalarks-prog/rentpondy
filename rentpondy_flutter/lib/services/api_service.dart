@@ -53,6 +53,47 @@ class ApiService {
     return list;
   }
 
+  /// GET /fetch-active-users-datas-all-rent -> the approved-property rows the
+  /// home tickers count by pincode. Deliberately NOT /fetch-active-users: the
+  /// web ticker uses this endpoint, and it is the one that includes pincodes
+  /// the public feed can omit (605104 Kottakuppam among them).
+  ///
+  /// Returns the raw maps so the tap-through list can filter them by pincode
+  /// without a second round trip — same as the web keeping `marqueePropertyList`.
+  Future<List<Map<String, dynamic>>> fetchAreaPropertyRows() async {
+    final res = await _client.get(
+      _uri('/fetch-active-users-datas-all-rent',
+          {'_t': DateTime.now().millisecondsSinceEpoch.toString()}),
+      headers: const {'Cache-Control': 'no-cache'},
+    );
+    if (res.statusCode != 200) {
+      throw ApiException('Failed to load area counts (${res.statusCode})');
+    }
+    final body = jsonDecode(res.body) as Map<String, dynamic>;
+    return ((body['users'] as List?) ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .where((r) => r['isDeleted'] != true)
+        .toList();
+  }
+
+  /// GET /raActive-buyerAssistance-all-plans-rent -> { data: [...] }
+  /// Active tenant requirements, counted by pincode for the second ticker.
+  Future<List<Map<String, dynamic>>> fetchTenantAssistanceRows() async {
+    final res = await _client.get(
+      _uri('/raActive-buyerAssistance-all-plans-rent',
+          {'_t': DateTime.now().millisecondsSinceEpoch.toString()}),
+      headers: const {'Cache-Control': 'no-cache'},
+    );
+    if (res.statusCode != 200) {
+      throw ApiException('Failed to load tenant counts (${res.statusCode})');
+    }
+    final body = jsonDecode(res.body) as Map<String, dynamic>;
+    return ((body['data'] as List?) ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .where((r) => r['isDeleted'] != true)
+        .toList();
+  }
+
   /// GET /fetch-status-with-payment-rent?phoneNumber= -> { data: [...] }
   /// The logged-in user's own listings, newest-updated first (My Property tab).
   Future<List<Property>> fetchMyProperties(String phoneNumber) async {

@@ -16,6 +16,19 @@
         android:icon="@mipmap/ic_launcher">
         <!-- Default channel + icon FCM uses for notification-type messages
              received while the app is in the background/terminated. -->
+        <!-- Render with Skia, not Impeller.
+
+             On this class of device (Android 11, no usable Vulkan) Impeller
+             falls back to its OpenGLES path — "Using the Impeller rendering
+             backend (OpenGLES)" in logcat — which intermittently paints a whole
+             frame a solid colour, seen as a red flash across the app for about
+             a second. Nothing is thrown, so there is no error to catch; it is a
+             rendering artifact. Skia is the older, settled backend and does not
+             do this. Revisit if the app's minimum Android version rises far
+             enough that Impeller gets Vulkan everywhere. -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false"/>
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="rentpondy_default"/>

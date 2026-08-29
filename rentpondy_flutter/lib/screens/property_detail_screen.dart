@@ -662,8 +662,23 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
             color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16));
   }
 
+  /// Security deposit for display: the figure when one was quoted, otherwise
+  /// "Call Owner". Imported newspaper listings store 0 for "not stated".
+  String _depositText() {
+    final raw = _p.rawStr('securityDeposit');
+    final n = raw == null ? null : num.tryParse(raw.replaceAll(RegExp(r'[^\d.]'), ''));
+    return Formatters.noAmount(n) ? 'Call Owner' : Formatters.inr(n);
+  }
+
   Widget _priceRow() {
     final negotiable = (_p.negotiation ?? '').toLowerCase() == 'yes';
+    // No quoted rent: say what to do instead of showing a rupee sign against
+    // nothing. "Negotiable" is meaningless without a figure to negotiate from.
+    if (_p.callForRent || Formatters.noAmount(_p.price)) {
+      return const Text('Call Owner',
+          style: TextStyle(
+              color: _kPriceOrange, fontWeight: FontWeight.bold, fontSize: 16));
+    }
     return Row(
       children: [
         const Icon(Icons.currency_rupee, size: 18, color: _kPriceOrange),
@@ -999,8 +1014,9 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
       _DField('Rent type', _png('rent_type.PNG'), _p.rawStr('rentType')),
       _DField('Total area', _png('total_area.png'), area.isEmpty ? null : area),
       _DField('Negotiation', _png('nego.PNG'), _p.negotiation),
-      _DField('Security deposit ₹', _png('advance.PNG'),
-          _p.rawStr('securityDeposit')),
+      // A 0 deposit is "not stated", not "no deposit required" — same rule as
+      // the rent above, so the tenant is told to ask rather than shown a zero.
+      _DField('Security deposit ₹', _png('advance.PNG'), _depositText()),
       _DField('No. of views', _mat(Icons.remove_red_eye), _p.views?.toString()),
     ];
     if (!_excludeFeatures) {

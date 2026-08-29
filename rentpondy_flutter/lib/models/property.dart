@@ -174,6 +174,16 @@ class Property {
 
   /// True when the listing's payment has cleared (drives the green "paid-card"
   /// styling and the Paid/Pending pill on My Property).
+  /// The owner quoted no rent and wants a phone call. Set explicitly on the
+  /// add-property form, and by the newspaper importer for the many classified
+  /// ads that print no figure. A 0 price means the same thing.
+  bool get callForRent {
+    final v = raw['callForRent'];
+    if (v is bool) return v;
+    if (v is String) return const ['true', '1', 'yes', 'y'].contains(v.toLowerCase());
+    return false;
+  }
+
   bool get isPaid => paymentStatus?.toLowerCase() == 'paid';
 
   bool get isPreApproved {

@@ -26,6 +26,10 @@ class PropertyCard extends StatelessWidget {
     return s[0].toUpperCase() + s.substring(1);
   }
 
+  /// No figure to show: the owner asked to be called, or none was ever quoted.
+  bool get _callOwner =>
+      property.callForRent || Formatters.noAmount(property.price);
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -125,10 +129,17 @@ class PropertyCard extends StatelessWidget {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Image.asset(Assets.rupeeIcon, width: 8),
-                          const SizedBox(width: 6),
+                          // With no quoted rent there is no figure to decorate:
+                          // the rupee sign and "Negotiable" both drop away, so
+                          // the card reads "Call Owner" rather than "₹ 0".
+                          if (!_callOwner) ...[
+                            Image.asset(Assets.rupeeIcon, width: 8),
+                            const SizedBox(width: 6),
+                          ],
                           Text(
-                            Formatters.inr(property.price),
+                            _callOwner
+                                ? 'Call Owner'
+                                : Formatters.inr(property.price),
                             style: const TextStyle(
                               fontSize: 15,
                               color: AppColors.primary,
@@ -136,10 +147,12 @@ class PropertyCard extends StatelessWidget {
                               letterSpacing: 1,
                             ),
                           ),
-                          const SizedBox(width: 5),
-                          Text(context.tr('card.negotiable'),
-                              style: const TextStyle(
-                                  color: AppColors.primary, fontSize: 11)),
+                          if (!_callOwner) ...[
+                            const SizedBox(width: 5),
+                            Text(context.tr('card.negotiable'),
+                                style: const TextStyle(
+                                    color: AppColors.primary, fontSize: 11)),
+                          ],
                         ],
                       ),
                     ],

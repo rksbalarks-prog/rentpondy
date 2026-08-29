@@ -5050,7 +5050,12 @@ const formattedCreatedAt = Date.now
 
     { icon: fieldIcons.negotiation, label: "Negotiation", value: propertyDetails.negotiation },
 
-           { icon: fieldIcons.securityDeposit, label: "Security deposit ₹", value: propertyDetails.securityDeposit },
+           // A 0 deposit means "not stated", not "none required" — same rule as
+           // the rent above, so the tenant is told to ask rather than shown a zero.
+           { icon: fieldIcons.securityDeposit, label: "Security deposit ₹",
+             value: Number(propertyDetails.securityDeposit) > 0
+               ? propertyDetails.securityDeposit
+               : 'Call Owner' },
     { icon: <AiOutlineEye />, label: "No. of views", value:propertyDetails.views },
 
 
@@ -6292,6 +6297,20 @@ const handleHeartClick = async () => {
       ? new Intl.NumberFormat('en-IN').format(propertyDetails.rentalAmount)
       : propertyDetails?.rentalAmount || 'N/A';
 
+  // Was a rent actually quoted? A classified ad usually prints none and expects
+  // a phone call, which the app already flags as `callForRent` (the listing
+  // cards render it as "Call Owner"). A 0 amount means the same thing, and
+  // showing "₹ 0" reads as free while "₹ N/A" tells a tenant nothing. A
+  // non-numeric string such as "On Demand" is a real answer, so it stands.
+  const rawRentAmount = propertyDetails?.rentalAmount;
+  const rentIsQuoted =
+    typeof rawRentAmount === 'number'
+      ? rawRentAmount > 0
+      : typeof rawRentAmount === 'string'
+        ? rawRentAmount.trim() !== '' && Number(rawRentAmount) !== 0
+        : false;
+  const showCallOwner = propertyDetails?.callForRent === true || !rentIsQuoted;
+
   // Convert price to words (e.g., "14 Lakhs")
   const priceInWords =
     propertyDetails?.rentalAmount && typeof propertyDetails.rentalAmount === 'number'
@@ -7138,12 +7157,18 @@ fontSize:"13px",
     fontSize: "16px",
 paddingLeft:"10px"
   }}>
-    <MdOutlineCurrencyRupee size={18} /> {formattedPrice}
-    <span style={{ fontSize: '14px', color: "#4F4B7E", marginLeft: "10px" }}>
+    {showCallOwner ? 'Call Owner' : (
+      <>
+        <MdOutlineCurrencyRupee size={18} /> {formattedPrice}
+        <span style={{ fontSize: '14px', color: "#4F4B7E", marginLeft: "10px" }}>
 {(propertyDetails.negotiation || '').toString().toLowerCase() === 'yes' ? 'Negotiable' : 'Non-Negotiable'}
-    </span>
+        </span>
+      </>
+    )}
   </p>
+      {!showCallOwner && (
       <p className="mt-1 mb-2" style={{paddingLeft:"10px", paddingRight:"10px", color:"#8B99A9"}}>{priceInWords}</p>
+      )}
 
         <h4 className="fw-bold mt-0" style={{fontSize:"15px",paddingLeft:"10px"}}>Make an offer</h4>
         <form
