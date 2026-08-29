@@ -57,6 +57,16 @@ const PROFILES = {
     params: { tessedit_pageseg_mode: '6' },
   },
 
+  // A second, independent look at the ad text. Used only to confirm a rent
+  // figure — see ocr.extractAdFromBox. Different scale and a hard threshold so
+  // it is genuinely a different computation, not the same one repeated.
+  text2: {
+    langs: ['tam', 'eng'],
+    scale: 3,
+    threshold: 145,
+    params: { tessedit_pageseg_mode: '6' },
+  },
+
   // Three digit readings that differ in the pixels they are given.
   digits0: {
     langs: ['eng'],

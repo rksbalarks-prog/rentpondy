@@ -106,22 +106,39 @@ function toRupees(numText, unit) {
 
 const MONEY = '(?:Rs\\.?|₹|INR)?\\s*([\\d][\\d,.]*)\\s*(K\\b|Lakhs?\\b|Lacs?\\b|Cr\\b|Crores?\\b|லட்சம்|கோடி)?';
 
-// "FOR RENT 3BHK House ..." is not a rent of ₹3. A bare number this close to
-// the word RENT is usually the bedroom count or a floor, so a figure only counts
-// as a rent when it is either marked as money (Rs / ₹ / K / lakhs) or large
-// enough that it cannot be anything else.
+// Every ad says "FOR RENT" in its headline, so the word RENT is a terrible
+// anchor on its own — the number that follows it is usually the SIZE:
+//
+//   "COMMERCIAL SPACE FOR RENT / 725 Sq.ft. (1st Floor)"     -> no rent quoted
+//   "FOR RENT First Floor 660 Sq.ft ... Rent : Rs. 25,000"   -> the rent is 25,000
+//
+// Both of those published a rent of a few hundred rupees before this was fixed.
+// So: collect every candidate, throw away any number that a size unit follows,
+// and prefer a candidate actually marked as money over a bare one.
 function detectRent(text) {
-  const re = new RegExp(`\\bRENT\\b[^\\d\\n]{0,18}${MONEY}([^\\n]{0,6})`, 'i');
-  const m = text.match(re);
-  if (!m) return null;
-  if (/^\s*BHK/i.test(m[3] || '')) return null;         // "RENT 3BHK"
+  const re = new RegExp(`\\bRENT\\b[^\\d\\n]{0,18}${MONEY}([^\\n]{0,12})`, 'gi');
+  const candidates = [];
 
-  const marked = /Rs\.?|₹|INR/i.test(m[0]) || !!m[2];   // money words or a K/lakh unit
-  const value = toRupees(m[1], m[2]);
-  if (value == null) return null;
-  if (!marked && value < 500) return null;              // a bedroom or a floor
+  for (const m of text.matchAll(re)) {
+    const trailing = m[3] || '';
 
-  return value;
+    // "725 Sq.ft" is an area. "3BHK" is a bedroom count. Neither is a rent.
+    if (/^\s*(?:sq\.?\s*\.?\s*(?:ft|feet)|sqft|சதுரடி)/i.test(trailing)) continue;
+    if (/^\s*BHK/i.test(trailing)) continue;
+
+    const marked = /Rs\.?|₹|INR/i.test(m[0]) || !!m[2];  // money words, or a K/lakh unit
+    const value = toRupees(m[1], m[2]);
+    if (value == null) continue;
+    if (!marked && value < 500) continue;                // a floor or a door number
+
+    candidates.push({ value, marked });
+  }
+
+  if (!candidates.length) return null;
+
+  // An explicitly priced figure beats a bare number every time.
+  const marked = candidates.filter((c) => c.marked);
+  return (marked.length ? marked : candidates)[0].value;
 }
 
 function detectDeposit(text) {

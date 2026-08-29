@@ -20,7 +20,7 @@
 
 const config = require('./config');
 const engine = require('./ocrEngine');
-const { extractFields, detectPhones } = require('./fields');
+const { extractFields, detectPhones, detectRent } = require('./fields');
 
 const NO_USAGE = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
 
@@ -65,10 +65,30 @@ async function triagePage(pageJpeg) {
   };
 }
 
-/** The single ad in one detected box, or null if the box is not a property ad. */
+/**
+ * The single ad in one detected box, or null if the box is not a property ad.
+ *
+ * The rent figure gets the same treatment as the phone digits, for the same
+ * reason. It is read once here, and if a number came out it is confirmed
+ * against a second, independently preprocessed reading. A single OCR slip
+ * otherwise reaches a live listing: a printed "Rent: Rs.9,000" was read as
+ * 159000 and published at that price. When the two readings disagree the rent
+ * is dropped to null, which the app renders as "Call Owner" — wrong-but-silent
+ * is much worse than absent.
+ */
 async function extractAdFromBox(boxJpeg) {
   const { text } = await engine.recognize(boxJpeg, 'text');
-  return { ad: extractFields(text), usage: { ...NO_USAGE } };
+  const ad = extractFields(text);
+
+  if (ad && ad.rentAmount != null) {
+    const second = await engine.recognize(boxJpeg, 'text2');
+    if (detectRent(second.text) !== ad.rentAmount) {
+      ad.rentAmount = null;
+      ad.rentUnconfirmed = true;   // surfaced as an issue by normalizeAd
+    }
+  }
+
+  return { ad, usage: { ...NO_USAGE } };
 }
 
 /**
