@@ -15,6 +15,11 @@ class TenantRequest {
   final String? phoneNumber;
   final DateTime? createdAt;
 
+  /// Full backend document. The Tenant Search predicate filters on fields this
+  /// model has no typed slot for (floorNo, state, rentType…), so it reads them
+  /// off here rather than growing a field per filter.
+  final Map<String, dynamic> raw;
+
   const TenantRequest({
     required this.id,
     this.raId,
@@ -29,6 +34,7 @@ class TenantRequest {
     this.city,
     this.phoneNumber,
     this.createdAt,
+    this.raw = const {},
   });
 
   factory TenantRequest.fromJson(Map<String, dynamic> json) {
@@ -50,7 +56,16 @@ class TenantRequest {
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.tryParse(json['createdAt'].toString()),
+      raw: json,
     );
+  }
+
+  /// Read any backend field by key as a display string.
+  String? rawStr(String key) {
+    final v = raw[key];
+    if (v == null) return null;
+    final s = v.toString().trim();
+    return s.isEmpty ? null : s;
   }
 
   /// The list masks the last five digits: `98765*****`.

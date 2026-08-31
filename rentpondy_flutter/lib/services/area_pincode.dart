@@ -27,6 +27,12 @@ class AreaPincode {
     _loaded = true;
   }
 
+  /// The whole area → pincode table for [base] ('CH' → Chennai, else
+  /// Pondicherry). Backs the home-feed area search box, which needs to list
+  /// and filter every known area, not just resolve one.
+  static Map<String, String> mapFor(String base) =>
+      base == 'CH' ? _ch : _py;
+
   /// Pincode for [area] in the active base ('CH' → Chennai, else Pondicherry),
   /// case-insensitive, or null when unknown.
   static String? lookup(String base, String area) {

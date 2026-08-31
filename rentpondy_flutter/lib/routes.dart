@@ -20,6 +20,7 @@ import 'screens/points_plans_screen.dart';
 import 'screens/pricing_plans_screen.dart';
 import 'screens/sort_property_screen.dart';
 import 'screens/tenant_assistance_screen.dart';
+import 'screens/tenant_search_screen.dart';
 import 'screens/tenant_list_screen.dart';
 
 /// Single place that maps a web-app route path to its Flutter screen.
@@ -134,8 +135,11 @@ Widget screenForRoute(String route, String title) {
     case '/buyer-list':
       return const TenantListScreen();
     case '/buyer-assistance':
-    case '/tenant-search':
       return const TenantAssistanceScreen();
+    // The web routes /tenant-search to FormComponent — the Tenant Assistance
+    // *Search* form, not the request form (RouterPage.jsx:275).
+    case '/tenant-search':
+      return const TenantSearchScreen();
     case '/owner-menu':
       return const SideMenuScreen(kind: SideMenuKind.owner);
     case '/buyer-menu':

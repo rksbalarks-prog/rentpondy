@@ -13,9 +13,21 @@ import '../utils/formatters.dart';
 /// Ports BuyerLists.jsx (`GET /get-buyerAssistances-rent`), including the
 /// Send Interest / More / Match Prop action row.
 class TenantListScreen extends StatefulWidget {
-  const TenantListScreen({super.key, this.showAppBar = true});
+  const TenantListScreen({
+    super.key,
+    this.showAppBar = true,
+    this.results,
+    this.title,
+  });
 
   final bool showAppBar;
+
+  /// A ready-made list to show instead of fetching everything — how Tenant
+  /// Search hands over its matches. The cards and their actions are identical.
+  final List<TenantRequest>? results;
+
+  /// App-bar title override, e.g. "Tenant Search".
+  final String? title;
 
   @override
   State<TenantListScreen> createState() => _TenantListScreenState();
@@ -35,7 +47,13 @@ class _TenantListScreenState extends State<TenantListScreen> {
     super.initState();
     _app = context.read<AppState>();
     _api = _app.api;
-    _load();
+    final given = widget.results;
+    if (given != null) {
+      _items = given;
+      _loading = false;
+    } else {
+      _load();
+    }
   }
 
   Future<void> _load() async {
@@ -100,8 +118,8 @@ class _TenantListScreenState extends State<TenantListScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         leading: const BackButton(color: AppColors.primary),
-        title: const Text('Tenant List',
-            style: TextStyle(
+        title: Text(widget.title ?? 'Tenant List',
+            style: const TextStyle(
                 color: AppColors.primary,
                 fontWeight: FontWeight.w700,
                 fontSize: 18)),

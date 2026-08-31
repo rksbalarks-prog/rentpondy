@@ -406,6 +406,17 @@ const Map<String, Map<String, String>> kStrings = {
     'en': 'No property found for that Rent ID.',
     'ta': 'அந்த Rent ID-க்கு சொத்து இல்லை.'
   },
+
+  // ── Home-feed area search box ──────────────────────────────────────────
+  'search.areaHint': {
+    'en': 'Enter Area Name or Pincode',
+    'ta': 'பகுதி பெயர் அல்லது பின்கோடு'
+  },
+  'search.noMatch': {'en': 'No Match Found', 'ta': 'பொருத்தம் இல்லை'},
+  'search.showAll': {
+    'en': 'Show all properties',
+    'ta': 'அனைத்து சொத்துகளையும் காட்டு'
+  },
 };
 
 /// Static lookup. Falls back to English, then to the raw key (so a missing

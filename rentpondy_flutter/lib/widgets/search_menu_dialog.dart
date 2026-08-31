@@ -1,14 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../l10n/l10n_ext.dart';
-import '../models/property.dart';
 import '../routes.dart';
-import '../screens/property_detail_screen.dart';
-import '../state/app_state.dart';
-import '../theme/app_colors.dart';
+import '../screens/property_search_screen.dart';
+import '../screens/tenant_search_screen.dart';
 
 /// The menu the floating SEARCH button opens.
 ///
@@ -59,6 +56,14 @@ class _SearchMenuState extends State<_SearchMenu> {
 
   void _close() => Navigator.of(context).pop();
 
+  /// Close the menu, then open [screen]. The navigator is captured first: by
+  /// the time the push runs this State is on its way out.
+  void _push(Widget screen) {
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.push(MaterialPageRoute(builder: (_) => screen));
+  }
+
   void _go(String route, String titleKey) {
     _close();
     pushRoute(context, route, context.trRead(titleKey));
@@ -79,15 +84,12 @@ class _SearchMenuState extends State<_SearchMenu> {
               _row(
                 icon: Icons.home,
                 label: context.tr('search.property'),
-                onTap: () {
-                  _close();
-                  showRentIdSearch(context);
-                },
+                onTap: () => _push(const PropertySearchScreen()),
               ),
               _row(
                 icon: Icons.people,
                 label: context.tr('search.tenant'),
-                onTap: () => _go('/tenant-search', 'title.tenantAssistant'),
+                onTap: () => _push(const TenantSearchScreen()),
               ),
               _row(
                 icon: Icons.sort,
@@ -162,120 +164,6 @@ class _SearchMenuState extends State<_SearchMenu> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// "Search Property" — the web opens a Bootstrap filter modal whose headline
-/// field is "SEARCH BY RENT ID". Flutter has no filter sheet, so this ports
-/// that lookup: enter a Rent ID, land on the property.
-Future<void> showRentIdSearch(BuildContext context) {
-  return showDialog<void>(
-    context: context,
-    builder: (_) => const _RentIdSearchDialog(),
-  );
-}
-
-class _RentIdSearchDialog extends StatefulWidget {
-  const _RentIdSearchDialog();
-
-  @override
-  State<_RentIdSearchDialog> createState() => _RentIdSearchDialogState();
-}
-
-class _RentIdSearchDialogState extends State<_RentIdSearchDialog> {
-  final _ctrl = TextEditingController();
-  bool _busy = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final id = _ctrl.text.trim();
-    if (id.isEmpty || _busy) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    final api = context.read<AppState>().api;
-    final navigator = Navigator.of(context);
-    Property? found;
-    try {
-      found = await api.fetchPropertyDetail(id);
-    } catch (_) {
-      found = null;
-    }
-    if (!mounted) return;
-    if (found == null) {
-      setState(() {
-        _busy = false;
-        _error = context.trRead('search.notFound');
-      });
-      return;
-    }
-    navigator.pop();
-    navigator.push(MaterialPageRoute(
-      builder: (_) => PropertyDetailScreen(rentId: id, initial: found!),
-    ));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      title: Text(context.tr('search.byRentId'),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _ctrl,
-            autofocus: true,
-            enabled: !_busy,
-            textInputAction: TextInputAction.search,
-            onSubmitted: (_) => _submit(),
-            decoration: InputDecoration(
-              hintText: context.tr('search.rentIdHint'),
-              isDense: true,
-              filled: true,
-              fillColor: const Color(0xFFF1F3F5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(_error!,
-                style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 12)),
-          ],
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.of(context).pop(),
-          child: Text(context.tr('common.cancel')),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white),
-          onPressed: _busy ? null : _submit,
-          child: _busy
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white))
-              : Text(context.tr('common.search')),
-        ),
-      ],
     );
   }
 }

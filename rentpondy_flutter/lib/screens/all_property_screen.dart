@@ -8,10 +8,12 @@ import '../l10n/l10n_ext.dart';
 import '../models/area_summary.dart';
 import '../models/property.dart';
 import '../services/api_service.dart';
+import '../services/area_index.dart';
 import '../state/app_state.dart';
 import '../routes.dart';
 import '../theme/app_colors.dart';
 import '../widgets/area_marquee.dart';
+import '../widgets/area_search_bar.dart';
 import '../widgets/marquee_banner.dart';
 import '../widgets/property_card.dart';
 import 'area_listings_screen.dart';
@@ -46,10 +48,32 @@ class _AllPropertyScreenState extends State<AllPropertyScreen> {
   List<Map<String, dynamic>> _tenantRows = const [];
   Timer? _tickerTimer;
 
+  // ── Area search (AllProperty.jsx `navbarSearchValue` & friends) ─────────
+  final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+
+  /// Suggestions come from [AreaIndex] — the bundled table plus the areas the
+  /// feed actually uses.
+  Map<String, String> _areaIndex = const {};
+  List<AreaSuggestion> _suggestions = const [];
+  bool _showSuggestions = false;
+
+  /// The applied selection. Both are set together, exactly like the web's
+  /// `setFilters({ area, pinCode })`, and both must match for a property to
+  /// stay in the list.
+  String? _selectedArea;
+  String? _selectedPincode;
+
   @override
   void initState() {
     super.initState();
     _api = context.read<AppState>().api;
+    _searchFocus.addListener(() {
+      if (!_searchFocus.hasFocus && mounted) {
+        setState(() => _showSuggestions = false);
+      }
+    });
+    _loadAreaIndex();
     _load();
     _loadTickers();
     _tickerTimer =
@@ -60,6 +84,8 @@ class _AllPropertyScreenState extends State<AllPropertyScreen> {
   void dispose() {
     _countFlush?.cancel();
     _tickerTimer?.cancel();
+    _searchCtrl.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -86,6 +112,95 @@ class _AllPropertyScreenState extends State<AllPropertyScreen> {
       _propertySummary = summariseByArea(countByPincode(_propertyRows));
       _tenantSummary = summariseByArea(countByPincode(_tenantRows));
     });
+  }
+
+  // ── Area search ────────────────────────────────────────────────────────
+
+  /// Seeds [_areaIndex] from the bundled area→pincode table for the active
+  /// city. `_load` then folds in the areas the feed actually uses.
+  Future<void> _loadAreaIndex() async {
+    await AreaIndex.ensureLoaded();
+    if (!mounted) return;
+    setState(() => _areaIndex = AreaIndex.entries(_base));
+  }
+
+  String get _base => context.read<AppState>().activeBase;
+
+  /// Match the typed text against area names AND pincodes, case-insensitive
+  /// and partial on both — "law" finds Lawspet, "605" finds every 605xxx area.
+  /// Straight port of `handleNavbarSearchChange`.
+  void _onSearchChanged(String value) {
+    final q = value.trim().toLowerCase();
+    if (q.isEmpty) {
+      setState(() {
+        _suggestions = const [];
+        _showSuggestions = false;
+      });
+      return;
+    }
+    final hits = _areaIndex.entries
+        .where((e) =>
+            e.key.toLowerCase().contains(q) || e.value.contains(q))
+        .map((e) => AreaSuggestion(e.key, e.value))
+        .toList()
+      ..sort((a, b) {
+        // Names that start with the query first, then alphabetically.
+        final ap = a.area.toLowerCase().startsWith(q) ? 0 : 1;
+        final bp = b.area.toLowerCase().startsWith(q) ? 0 : 1;
+        return ap != bp
+            ? ap - bp
+            : a.area.toLowerCase().compareTo(b.area.toLowerCase());
+      });
+    setState(() {
+      _suggestions = hits;
+      _showSuggestions = hits.isNotEmpty;
+    });
+  }
+
+  /// Apply a suggestion: fill the box, pin the area+pincode filter, close the
+  /// dropdown. `handleNavbarAreaSelect` in the web app.
+  void _selectSuggestion(AreaSuggestion s) {
+    _searchCtrl.text = s.area;
+    _searchFocus.unfocus();
+    setState(() {
+      _selectedArea = s.area;
+      _selectedPincode = s.pincode;
+      _suggestions = const [];
+      _showSuggestions = false;
+    });
+  }
+
+  /// Enter with the dropdown open takes the top hit, as the web does with its
+  /// keyboard-highlighted row.
+  void _submitSearch() {
+    if (_suggestions.isNotEmpty) _selectSuggestion(_suggestions.first);
+  }
+
+  /// The "✕" — clears the box and drops the filter (`handleClearSearch`).
+  void _clearSearch() {
+    _searchCtrl.clear();
+    _searchFocus.unfocus();
+    setState(() {
+      _suggestions = const [];
+      _showSuggestions = false;
+      _selectedArea = null;
+      _selectedPincode = null;
+    });
+  }
+
+  /// The feed narrowed to the selected area. Both area and pincode have to
+  /// match exactly (case-insensitive on the name) — same rule as the web's
+  /// `areaMatch && pincodeMatch`.
+  List<Property> get _visibleProperties {
+    final area = _selectedArea;
+    if (area == null) return _properties;
+    final a = area.toLowerCase();
+    final pin = _selectedPincode ?? '';
+    return _properties.where((p) {
+      if ((p.area ?? '').trim().toLowerCase() != a) return false;
+      if (pin.isEmpty) return true;
+      return (p.rawStr('pinCode') ?? '').trim() == pin;
+    }).toList();
   }
 
   void _openArea(AreaCard card, {required bool tenants}) {
@@ -116,6 +231,9 @@ class _AllPropertyScreenState extends State<AllPropertyScreen> {
         _properties = props;
         _loading = false;
       });
+      // Every search box in the app suggests from the same index.
+      AreaIndex.learnFrom(_base, props);
+      setState(() => _areaIndex = AreaIndex.entries(_base));
       _loadImageCounts(props);
     } catch (e) {
       if (!mounted) return;
@@ -226,30 +344,77 @@ class _AllPropertyScreenState extends State<AllPropertyScreen> {
       );
     }
 
+    final visible = _visibleProperties;
+    // A picked area with nothing in it — the web pops its "No Property found"
+    // modal here; inline reads better on a phone.
+    final noMatch = visible.isEmpty && _selectedArea != null;
+
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _load,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-        // +1 exclusive-stays banner, +1 header holding the two area tickers —
-        // the same order the web feed uses.
-        itemCount: _properties.length + 2,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        // +1 area search box, +1 exclusive-stays banner, +1 header holding the
+        // two area tickers — the same order the web feed uses.
+        itemCount: 3 + (noMatch ? 1 : visible.length),
         itemBuilder: (context, i) {
           if (i == 0) {
+            return AreaSearchBar(
+              controller: _searchCtrl,
+              focusNode: _searchFocus,
+              suggestions: _suggestions,
+              showSuggestions: _showSuggestions,
+              onChanged: _onSearchChanged,
+              onSelect: _selectSuggestion,
+              onClear: _clearSearch,
+              onSubmitted: _submitSearch,
+            );
+          }
+          if (i == 1) {
             return MarqueeBanner(
               text: context.tr('feed.marquee'),
               onTap: () => pushRoute(
                   context, '/exclusiveDetail', context.trRead('menu.touristPlace')),
             );
           }
-          if (i == 1) return _tickers();
-          final p = _properties[i - 2];
+          if (i == 2) return _tickers();
+          if (noMatch) return _noMatch();
+          final p = visible[i - 3];
           return PropertyCard(
             property: p,
             imageCount: _imageCounts[p.rentId] ?? 0,
             onTap: () => _openDetail(p),
           );
         },
+      ),
+    );
+  }
+
+  /// Empty state for a search that matched nothing, with the way back out.
+  Widget _noMatch() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Column(
+        children: [
+          Image.asset(Assets.noData, width: 90),
+          const SizedBox(height: 10),
+          Text(
+            context.tr('search.noMatch'),
+            style: const TextStyle(color: Color(0xFF666666), fontSize: 15),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+            ),
+            onPressed: _clearSearch,
+            child: Text(context.tr('search.showAll')),
+          ),
+        ],
       ),
     );
   }
