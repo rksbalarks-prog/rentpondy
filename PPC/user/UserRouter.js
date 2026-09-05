@@ -3126,8 +3126,8 @@ router.post('/user/update-remarks', async (req, res) => {
     return res.status(400).json({ message: 'Phone number is required' });
   }
 
-  if (!['seller', 'buyer', 'visitor', 'noresponse', ''].includes(remarks)) {
-    return res.status(400).json({ message: 'Invalid remarks. Must be "seller", "buyer", "visitor", "noresponse", or empty string' });
+  if (!['seller', 'buyer', 'visitor', 'noresponse', 'notinterested', ''].includes(remarks)) {
+    return res.status(400).json({ message: 'Invalid remarks. Must be "seller", "buyer", "visitor", "noresponse", "notinterested", or empty string' });
   }
 
   try {

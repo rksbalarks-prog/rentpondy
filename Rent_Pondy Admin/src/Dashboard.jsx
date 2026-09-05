@@ -136,6 +136,7 @@ import CreateBuyerFollowUp from './CreateBuyerFollowUp';
 import FollowUpBuyerGetTable from './FollowUpBuyerGetTable';
 import NoResponseFollowUps from './NoResponseFollowUps';
 import VisitorFollowUps from './VisitorFollowUps';
+import NotInterestedFollowUps from './NotInterestedFollowUps';
 import GetAllPropertyStatics from './GetAllPropertyStatics';
 import GetAllBuyerStatics from './GetAllBuyerStatics';
 import GetAllUsageStatics from './GetAllUsageStatics';
@@ -240,6 +241,7 @@ const routes = [
   { path: "/buyers-follow-ups",           element: <BuyersFollowUps />,           permissionKey: "Buyer FllowUp" },
   { path: "/noresponse-follow-ups",        element: <NoResponseFollowUps />,        permissionKey: null },
   { path: "/visitor-follow-ups",           element: <VisitorFollowUps />,           permissionKey: null },
+  { path: "/notinterested-follow-ups",     element: <NotInterestedFollowUps />,     permissionKey: null },
   { path: "/buyers-shortlisted",          element: <BuyersShortlized />,          permissionKey: null },
   { path: "/buyers-statics",              element: <BuyersStatics />,             permissionKey: "BuyerStatics" },
   { path: "/callback-form",              element: <CallBackForm />,               permissionKey: null },

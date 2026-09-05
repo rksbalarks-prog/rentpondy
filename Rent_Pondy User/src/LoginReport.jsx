@@ -400,9 +400,11 @@ const handleSetActiveStatus = async (user) => {
                 className="form-select mb-3"
               >
                 <option value="">-- Select Remark --</option>
-                <option value="seller">Seller</option>
-                <option value="buyer">Buyer</option>
+                <option value="seller">Owner</option>
+                <option value="buyer">Tenant</option>
                 <option value="visitor">Visitor</option>
+                <option value="noresponse">No response</option>
+                <option value="notinterested">Not interested</option>
               </select>
             ) : (
               <input

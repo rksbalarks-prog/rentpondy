@@ -525,6 +525,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               {/* Visitor follow-ups (created from the Login OTP report when Remark Status is "Visitor").
                   Ungated, sits directly under No Response Followups Data. */}
               <li className="p-0 mt-2"><NavLink to="/dashboard/visitor-follow-ups" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaFileInvoice />Visitor Followups Data</NavLink></li>
+              {/* Not-Interested follow-ups (created from the Login OTP report when Remark Status
+                  is "Not interested"). Ungated, sits directly under Visitor Followups Data. */}
+              <li className="p-0 mt-2"><NavLink to="/dashboard/notinterested-follow-ups" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaFileInvoice />Not Interested Followups Data</NavLink></li>
               {can("Transfer FllowUps") && <li className="p-0 mt-2"><NavLink to="/dashboard/transfer-follow-ups" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><RiExchangeFill size={20} />Transfer FollowUps</NavLink></li>}
               {can("Transfer Assistant") && <li className="p-0 mt-2"><NavLink to="/dashboard/transfer-assistant" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><RiHandCoinFill size={20} />Transfer Assistant</NavLink></li>}
             </ul>

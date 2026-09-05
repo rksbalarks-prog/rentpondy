@@ -338,7 +338,7 @@ const countryCodes = [
     // remarks: { type: String, default: '' },
 remarks: {
   type: String,
-  enum: ['seller', 'buyer', 'visitor', 'noresponse', ''],  // Include empty string in allowed values
+  enum: ['seller', 'buyer', 'visitor', 'noresponse', 'notinterested', ''],  // Include empty string in allowed values
   default: ''
 },
 

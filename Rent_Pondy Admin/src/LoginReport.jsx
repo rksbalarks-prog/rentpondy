@@ -10,15 +10,16 @@ import PhoneCell from './components/PhoneCell';
 import FollowupQuickModal from './components/FollowupQuickModal';
 
 // Remarks that map to a follow-up bucket when a phone is double-clicked.
-// 'visitor' is filed into the No-Response bucket (see FollowupQuickModal).
-// Only a blank remark has no destination — it is blocked.
-const FOLLOWUP_REMARKS = ['seller', 'buyer', 'noresponse', 'visitor'];
+// Each remark has its own destination (see FollowupQuickModal); only a blank
+// remark has nowhere to go, so that is the one case we block.
+const FOLLOWUP_REMARKS = ['seller', 'buyer', 'noresponse', 'visitor', 'notinterested'];
 
 const remarksMap = {
   visitor: 'Visitor',
   seller: 'Owner',
   buyer: 'Tenant',
   noresponse: 'No response',
+  notinterested: 'Not interested',
 };
 
 const getDisplayRemarks = (r) => remarksMap[r] || r || 'N/A';
@@ -68,6 +69,7 @@ const TableRow = React.memo(({ item, index, updatingPhones, showConfirmation, on
           <option value="buyer">Tenant</option>
           <option value="visitor">Visitor</option>
           <option value="noresponse">No response</option>
+          <option value="notinterested">Not interested</option>
         </select>
       </td>
 
@@ -94,6 +96,12 @@ const TableRow = React.memo(({ item, index, updatingPhones, showConfirmation, on
         {item.remarks === 'noresponse' && (
           <div>
             <span className="badge bg-dark d-block mb-1">No response</span>
+            {item.updatedBy && <small className="text-muted d-block">{item.updatedBy}{updateDate ? ` (${updateDate})` : ''}</small>}
+          </div>
+        )}
+        {item.remarks === 'notinterested' && (
+          <div>
+            <span className="badge bg-danger d-block mb-1">Not interested</span>
             {item.updatedBy && <small className="text-muted d-block">{item.updatedBy}{updateDate ? ` (${updateDate})` : ''}</small>}
           </div>
         )}
@@ -501,8 +509,9 @@ const LoginReportTable = () => {
   }, []);
 
   // Double-click a phone → open the quick follow-up modal, routed by Remark Status.
-  // Owner→Property, Tenant→Tenant, No response & Visitor→No-Response bucket. A row
-  // with no remark has no bucket, so we ask the admin to set one first.
+  // Owner→Property, Tenant→Tenant, and No response / Visitor / Not interested each
+  // into their own bucket. A row with no remark has no bucket, so we ask the
+  // admin to set one first.
   const handlePhoneDoubleClick = useCallback((user) => {
     if (!user?.phone) return;
     if (FOLLOWUP_REMARKS.includes(user.remarks)) {
@@ -581,7 +590,7 @@ const LoginReportTable = () => {
       OTP: item.otp || 'N/A',
       'Login Date': moment(item.loginDate).format('DD-MM-YYYY HH:mm'),
       'OTP Status': item.otpStatus,
-      Remarks: item.remarks || 'N/A',
+      Remarks: getDisplayRemarks(item.remarks),
       'Banned Reason': item.bannedReason || 'N/A',
       'Deleted Reason': item.deleteReason || 'N/A',
       'Banned By / Unbanned By': [
@@ -701,6 +710,7 @@ const LoginReportTable = () => {
             <option value="buyer">Tenant</option>
             <option value="visitor">Visitor</option>
             <option value="noresponse">No response</option>
+            <option value="notinterested">Not interested</option>
           </select>
         </div>
       </div>
@@ -714,8 +724,8 @@ const LoginReportTable = () => {
         </Modal.Header>
         <Modal.Body style={{ fontSize: '0.95rem', color: '#333' }}>
           Please set a Remark Status (<strong>Owner</strong>, <strong>Tenant</strong>,{' '}
-          <strong>Visitor</strong> or <strong>No response</strong>) on this row before adding a
-          follow-up.
+          <strong>Visitor</strong>, <strong>No response</strong> or{' '}
+          <strong>Not interested</strong>) on this row before adding a follow-up.
         </Modal.Body>
         <Modal.Footer>
           <Button variant="primary" onClick={() => setShowRemarkWarning(false)}>OK</Button>
