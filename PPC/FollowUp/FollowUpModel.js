@@ -22,7 +22,7 @@ const followUpSchema = new mongoose.Schema({
   },
   followupType: {
     type: String,
-    enum: ['Payment Followup', 'Data Followup', 'Enquiry Followup', 'No Response', 'Payment Closed'],
+    enum: ['Payment Followup', 'Data Followup', 'Enquiry Followup', 'No Response', 'Not Interested', 'Payment Closed'],
     required: true
   },
   followupDate: {

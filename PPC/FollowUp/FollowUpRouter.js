@@ -106,7 +106,7 @@ router.post('/followup-create', async (req, res) => {
 
     // Validate enum values
     const validStatuses = ['Ring', 'Ready To Pay', 'Not Decided', 'No Response', 'Not Interested-Closed', 'Paid Closed'];
-    const validTypes = ['Payment Followup', 'Data Followup', 'Enquiry Followup', 'No Response', 'Payment Closed'];
+    const validTypes = ['Payment Followup', 'Data Followup', 'Enquiry Followup', 'No Response', 'Not Interested', 'Payment Closed'];
     
     if (!validStatuses.includes(followupStatus)) {
       return res.status(400).json({ 

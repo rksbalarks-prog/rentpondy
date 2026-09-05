@@ -55,7 +55,7 @@ const REMARK_CONFIG = {
 };
 
 const STATUS_OPTIONS = ['Ring', 'Ready To Pay', 'Not Decided', 'No Response', 'Not Interested-Closed', 'Paid Closed'];
-const TYPE_OPTIONS = ['Payment Followup', 'Data Followup', 'Enquiry Followup', 'No Response', 'Payment Closed'];
+const TYPE_OPTIONS = ['Payment Followup', 'Data Followup', 'Enquiry Followup', 'No Response', 'Not Interested', 'Payment Closed'];
 
 const FollowupQuickModal = ({ phone, remark, adminName, onClose, onCreated }) => {
   const config = REMARK_CONFIG[remark];

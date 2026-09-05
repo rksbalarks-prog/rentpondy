@@ -647,7 +647,7 @@ const FollowUpGetTable = () => {
 
             {[
               { label: 'Follow-up Status', name: 'followupStatus', options: ['Ring', 'Ready To Pay', 'Not Decided', 'No Response', 'Not Interested-Closed', 'Paid Closed'] },
-              { label: 'Follow-up Type', name: 'followupType', options: ['Payment Followup', 'Data Followup', 'Enquiry Followup', 'No Response', 'Payment Closed'] }
+              { label: 'Follow-up Type', name: 'followupType', options: ['Payment Followup', 'Data Followup', 'Enquiry Followup', 'No Response', 'Not Interested', 'Payment Closed'] }
             ].map(({ label, name, options }) => (
               <div key={name} style={{ marginBottom: '15px' }}>
                 <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px', color: '#555' }}>{label}:</label>
@@ -724,7 +724,7 @@ const FollowUpGetTable = () => {
 
             {[
               { label: 'Follow-up Status', name: 'followupStatus', options: ['Ring', 'Ready To Pay', 'Not Decided', 'No Response', 'Not Interested-Closed', 'Paid Closed'] },
-              { label: 'Follow-up Type', name: 'followupType', options: ['Payment Followup', 'Data Followup', 'Enquiry Followup', 'No Response', 'Payment Closed'] }
+              { label: 'Follow-up Type', name: 'followupType', options: ['Payment Followup', 'Data Followup', 'Enquiry Followup', 'No Response', 'Not Interested', 'Payment Closed'] }
             ].map(({ label, name, options }) => (
               <div key={name} style={{ marginBottom: '15px' }}>
                 <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px', color: '#555' }}>{label}: <span style={{ color: '#dc3545' }}>*</span></label>

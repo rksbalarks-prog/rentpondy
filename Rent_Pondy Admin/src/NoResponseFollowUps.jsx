@@ -14,7 +14,7 @@ import { formatDateTime } from './utils/dateFormat';
  */
 
 const STATUS_OPTIONS = ['Ring', 'Ready To Pay', 'Not Decided', 'No Response', 'Not Interested-Closed', 'Paid Closed'];
-const TYPE_OPTIONS = ['Payment Followup', 'Data Followup', 'Enquiry Followup', 'No Response', 'Payment Closed'];
+const TYPE_OPTIONS = ['Payment Followup', 'Data Followup', 'Enquiry Followup', 'No Response', 'Not Interested', 'Payment Closed'];
 
 const dedupeFollowups = (arr) => {
   if (!Array.isArray(arr)) return [];

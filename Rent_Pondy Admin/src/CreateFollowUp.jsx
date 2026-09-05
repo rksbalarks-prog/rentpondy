@@ -267,6 +267,7 @@ function CreateFollowUp() {
             <option value="Data Followup">Data Followup</option>
             <option value="Enquiry Followup">Enquiry Followup</option>
             <option value="No Response">No Response</option>
+            <option value="Not Interested">Not Interested</option>
             <option value="Payment Closed">Payment Closed</option>
           </select>
         </div>
