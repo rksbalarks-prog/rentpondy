@@ -1,0 +1,8 @@
+{
+ "extends": [
+  "d:/LTS/Rent Pondy user and admin/Rent_Pondy Admin/node_modules/eslint-config-react-app/index.js"
+ ],
+ "rules": {
+  "no-undef": "error"
+ }
+}

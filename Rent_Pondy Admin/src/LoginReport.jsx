@@ -12,7 +12,7 @@ import FollowupQuickModal from './components/FollowupQuickModal';
 // Remarks that map to a follow-up bucket when a phone is double-clicked.
 // Each remark has its own destination (see FollowupQuickModal); only a blank
 // remark has nowhere to go, so that is the one case we block.
-const FOLLOWUP_REMARKS = ['seller', 'buyer', 'noresponse', 'visitor', 'notinterested'];
+const FOLLOWUP_REMARKS = ['seller', 'buyer', 'noresponse', 'visitor', 'notinterested', 'ring'];
 
 const remarksMap = {
   visitor: 'Visitor',
@@ -20,6 +20,7 @@ const remarksMap = {
   buyer: 'Tenant',
   noresponse: 'No response',
   notinterested: 'Not interested',
+  ring: 'Ring',
 };
 
 const getDisplayRemarks = (r) => remarksMap[r] || r || 'N/A';
@@ -70,6 +71,7 @@ const TableRow = React.memo(({ item, index, updatingPhones, showConfirmation, on
           <option value="visitor">Visitor</option>
           <option value="noresponse">No response</option>
           <option value="notinterested">Not interested</option>
+          <option value="ring">Ring</option>
         </select>
       </td>
 
@@ -102,6 +104,12 @@ const TableRow = React.memo(({ item, index, updatingPhones, showConfirmation, on
         {item.remarks === 'notinterested' && (
           <div>
             <span className="badge bg-danger d-block mb-1">Not interested</span>
+            {item.updatedBy && <small className="text-muted d-block">{item.updatedBy}{updateDate ? ` (${updateDate})` : ''}</small>}
+          </div>
+        )}
+        {item.remarks === 'ring' && (
+          <div>
+            <span className="badge bg-success d-block mb-1">Ring</span>
             {item.updatedBy && <small className="text-muted d-block">{item.updatedBy}{updateDate ? ` (${updateDate})` : ''}</small>}
           </div>
         )}
@@ -711,6 +719,7 @@ const LoginReportTable = () => {
             <option value="visitor">Visitor</option>
             <option value="noresponse">No response</option>
             <option value="notinterested">Not interested</option>
+            <option value="ring">Ring</option>
           </select>
         </div>
       </div>

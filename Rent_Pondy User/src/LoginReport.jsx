@@ -405,6 +405,7 @@ const handleSetActiveStatus = async (user) => {
                 <option value="visitor">Visitor</option>
                 <option value="noresponse">No response</option>
                 <option value="notinterested">Not interested</option>
+                <option value="ring">Ring</option>
               </select>
             ) : (
               <input

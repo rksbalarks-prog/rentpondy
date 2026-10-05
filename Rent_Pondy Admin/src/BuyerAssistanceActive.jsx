@@ -406,6 +406,11 @@ const handleExportToExcel = () => {
     boxShadow: last ? '2px 0 4px -1px rgba(0,0,0,0.15)' : undefined,
   });
 
+  // Inline so it beats the global `input { width: 100%; padding; margin }` rule
+  // in Users/UserList.css — that rule collapsed these checkboxes to zero width
+  // inside the narrow fixed-width sticky column, leaving the column blank.
+  const checkboxStyle = { width: 16, height: 16, margin: 0, padding: 0, cursor: 'pointer', verticalAlign: 'middle' };
+
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">Active Buyer Assistance</h2>
@@ -569,12 +574,13 @@ onClick={handleReset}
     <div ref={tableRef}>    <Table striped bordered hover responsive className="table-sm align-middle">
           <thead className="sticky-top">
             <tr>
-              <th className="border px-4 py-2 no-print" style={stickyCol(0, 46, { header: true })}>
+              <th className="border px-2 py-2 no-print text-center" style={stickyCol(0, 46, { header: true })}>
                 <input
                   type="checkbox"
                   checked={allShownSelected}
                   onChange={toggleSelectAllShown}
                   title="Select all shown rows"
+                  style={checkboxStyle}
                 />
               </th>
               <th className="border px-4 py-2" style={stickyCol(46, 70, { header: true })}>SI.NO</th>              <th className="border px-4 py-2" style={stickyCol(116, 100, { header: true })}>Ra_Id</th>
@@ -604,13 +610,14 @@ onClick={handleReset}
           <tbody>
             {filteredData.map((item, idx) => (
               <tr key={idx} className="text-center">
-                <td className="border px-4 py-2 no-print" style={stickyCol(0, 46)}>
+                <td className="border px-2 py-2 no-print" style={stickyCol(0, 46)}>
                   {!item.isDeleted && (
                     <input
                       type="checkbox"
                       checked={selectedRaIds.includes(item.Ra_Id)}
                       onChange={() => toggleSelectOne(item.Ra_Id)}
                       title={`Select Ra_Id ${item.Ra_Id}`}
+                      style={checkboxStyle}
                     />
                   )}
                 </td>

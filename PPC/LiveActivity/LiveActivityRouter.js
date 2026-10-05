@@ -5,6 +5,12 @@ const LiveUserActivity = require('./LiveActivityModel');
 const AddModel = require('../AddModel');
 const PaymentPayU = require('../PayU/PayUModel');
 const FollowUp = require('../FollowUp/FollowUpModel');
+// Money reaches Rent Pondy by three separate roads, and "has this number ever
+// paid us?" is false unless all three are asked. PaymentPayU alone (property
+// listings, keyed by rentId) misses every tenant who bought a buyer plan or a
+// points top-up — both of which are keyed by phone, not rentId.
+const PaymentPayUBuyer = require('../PayuBuyer/PayuBuyerModel');
+const { PointsPayU } = require('../Points/PointsModel');
 
 /**
  * Live User Activity — ingest + admin read API.
@@ -31,6 +37,20 @@ const clientIp = (req) =>
   '';
 
 const str = (v, max = 500) => (v === undefined || v === null ? '' : String(v).slice(0, max));
+
+// Web browser, or the Android app?
+//
+// The Play Store app (com.apps.rentpondy) is a WebView wrapper around the same
+// user site, so its traffic already arrives here through the ordinary tracker
+// and is indistinguishable from mobile web by `device` alone — that field only
+// says Mobile or Desktop. Android WebView marks its user-agent with a `; wv)`
+// token, which is the one thing that separates the two, and every stored row
+// carries a user-agent, so this classifies history as well as new rows.
+//
+// There is no iOS app, so an iPhone is always mobile web. If one ever ships,
+// WKWebView carries no `wv` token and this will need a real signal from the
+// client (a header or an `app` flag on the tracked event) rather than a guess.
+const platformOf = (userAgent) => (/;\s*wv\)/i.test(String(userAgent || '')) ? 'App' : 'Web');
 
 /** Turn one raw client event into a safe document. */
 const toDoc = (e, req) => ({
@@ -123,9 +143,17 @@ router.get('/live-activity/online', async (req, res) => {
           phone: { $first: '$phone' },
           sessionId: { $first: '$sessionId' },
           lastAction: { $first: '$label' },
+          // The machine code behind lastAction. `label` falls back to the
+          // action name but is otherwise free text, so anything colouring or
+          // grouping by action family needs the code itself. Added for the
+          // Live Now lead panel; purely additive, no existing field changes.
+          action: { $first: '$action' },
           lastPath: { $first: '$path' },
           base: { $first: '$base' },
           device: { $first: '$device' },
+          // Only to classify Web vs App below — stripped before the response,
+          // since 200 full user-agent strings is payload nobody reads.
+          userAgent: { $first: '$userAgent' },
           at: { $first: '$at' },
           hits: { $sum: 1 },
         },
@@ -134,7 +162,9 @@ router.get('/live-activity/online', async (req, res) => {
       { $limit: 200 },
     ]);
 
-    res.status(200).json({ success: true, minutes, count: rows.length, rows });
+    const out = rows.map(({ userAgent, ...r }) => ({ ...r, platform: platformOf(userAgent) }));
+
+    res.status(200).json({ success: true, minutes, count: out.length, rows: out });
   } catch (error) {
     console.error('live-activity/online error:', error.message);
     res.status(500).json({ success: false, message: error.message });
@@ -217,14 +247,32 @@ router.get('/live-activity/user-flags', async (req, res) => {
       .slice(0, 200);
     if (!phones.length) return res.status(200).json({ success: true, flags: {} });
 
-    const props = await AddModel.find({ phoneNumber: { $in: phones } })
-      .select('phoneNumber rentId status')
-      .lean();
+    // All three roads to "paid", asked at once. Buyer plans and points top-ups
+    // are keyed by phone directly; only property listings need the rentId hop.
+    const [props, buyerPaid, pointsPaid] = await Promise.all([
+      AddModel.find({ phoneNumber: { $in: phones } })
+        .select('phoneNumber rentId status')
+        .lean(),
+      PaymentPayUBuyer.find({
+        phone: { $in: phones },
+        payustatususer: 'paid',
+        removed: { $ne: true },
+      })
+        .select('phone')
+        .lean(),
+      PointsPayU.find({ phone: { $in: phones }, payustatususer: 'paid' })
+        .select('phone')
+        .lean(),
+    ]);
 
     const payMap = await paymentMapFor(props.map((p) => p.rentId).filter((r) => r !== undefined));
 
     const flags = {};
-    for (const phone of phones) flags[phone] = { paid: false, properties: 0, statuses: [] };
+    // `paidVia` says WHICH road, so an owner who paid to list and a tenant who
+    // bought points are not flattened into the same undifferentiated "PAID".
+    for (const phone of phones) {
+      flags[phone] = { paid: false, properties: 0, statuses: [], paidVia: [] };
+    }
 
     for (const p of props) {
       const f = flags[p.phoneNumber];
@@ -233,7 +281,24 @@ router.get('/live-activity/user-flags', async (req, res) => {
       const ds = displayStatusOf(p.status);
       if (!f.statuses.includes(ds)) f.statuses.push(ds);
       const pay = payMap.get(p.rentId);
-      if (pay && String(pay.payustatususer).toLowerCase() === 'paid') f.paid = true;
+      if (pay && String(pay.payustatususer).toLowerCase() === 'paid') {
+        f.paid = true;
+        if (!f.paidVia.includes('property')) f.paidVia.push('property');
+      }
+    }
+
+    for (const b of buyerPaid) {
+      const f = flags[b.phone];
+      if (!f) continue;
+      f.paid = true;
+      if (!f.paidVia.includes('buyer')) f.paidVia.push('buyer');
+    }
+
+    for (const pt of pointsPaid) {
+      const f = flags[pt.phone];
+      if (!f) continue;
+      f.paid = true;
+      if (!f.paidVia.includes('points')) f.paidVia.push('points');
     }
 
     res.status(200).json({ success: true, flags });

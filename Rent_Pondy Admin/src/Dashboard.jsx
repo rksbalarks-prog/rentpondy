@@ -137,6 +137,7 @@ import FollowUpBuyerGetTable from './FollowUpBuyerGetTable';
 import NoResponseFollowUps from './NoResponseFollowUps';
 import VisitorFollowUps from './VisitorFollowUps';
 import NotInterestedFollowUps from './NotInterestedFollowUps';
+import RingFollowUps from './RingFollowUps';
 import GetAllPropertyStatics from './GetAllPropertyStatics';
 import GetAllBuyerStatics from './GetAllBuyerStatics';
 import GetAllUsageStatics from './GetAllUsageStatics';
@@ -213,6 +214,9 @@ import PointsPopupPlans from './PointsPricing/PointsPopupPlans';
 import RentStaffReport from './RentStaffReport';
 import DataAdded from './DataAdded';
 import { FollowupProvider } from './contexts/FollowupContext';
+// Lead panels — drawers at the right edge of every admin screen. Mounted here
+// (rather than per page) because that is the whole point: they follow you.
+import LeadPanels from './components/LeadPanels/LeadPanels';
 
 // ── permissionKey must exactly match the key in ALL_FILES inside UserRolls.jsx ──
 const routes = [
@@ -242,6 +246,7 @@ const routes = [
   { path: "/noresponse-follow-ups",        element: <NoResponseFollowUps />,        permissionKey: null },
   { path: "/visitor-follow-ups",           element: <VisitorFollowUps />,           permissionKey: null },
   { path: "/notinterested-follow-ups",     element: <NotInterestedFollowUps />,     permissionKey: null },
+  { path: "/ring-follow-ups",              element: <RingFollowUps />,              permissionKey: null },
   { path: "/buyers-shortlisted",          element: <BuyersShortlized />,          permissionKey: null },
   { path: "/buyers-statics",              element: <BuyersStatics />,             permissionKey: "BuyerStatics" },
   { path: "/callback-form",              element: <CallBackForm />,               permissionKey: null },
@@ -469,6 +474,7 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+      <LeadPanels />
     </FollowupProvider>
   );
 };

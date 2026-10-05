@@ -1,0 +1,286 @@
+/* --------------------------------------------------------------------------
+   Lead Panels — drawers that live at the right edge of every admin page.
+
+   Ported from PM_Matri_Admin's livepanel.css. That one is jQuery driving a
+   multi-page PHP app, where "follows you around the admin" had to be rebuilt
+   from localStorage on every page load. Here the admin is a single-page React
+   app, so the panel genuinely survives navigation and localStorage is only
+   needed to survive a full refresh.
+
+   Everything is prefixed `lp-` so it cannot collide with the admin's existing
+   stylesheets — nothing else in src/ uses that prefix.
+
+   Sits under Bootstrap's modal layer (1050) on purpose: a dialog the user
+   deliberately opened must still cover an ambient panel.
+   -------------------------------------------------------------------------- */
+
+:root {
+    --lp-w: 340px;
+    --lp-green: #00a65a;
+    --lp-green-d: #008d4c;
+    --lp-blue: #3c8dbc;
+    --lp-ink: #2b3d47;
+    --lp-mute: #8a9ba5;
+    --lp-line: #e4eaed;
+}
+
+/* ── The rail: every tab in one measured column ───────────────────────────────
+   The source stacked its tabs by measuring offsetHeight in JS, because each
+   panel's own script rendered its own tab and none of them could know about
+   the others. Here they share a flex column, so stacking is free and adding a
+   panel cannot land it on top of another. */
+.lp-rail {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    z-index: 1035;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    transition: right .3s cubic-bezier(.4, 0, .2, 1);
+}
+/* One drawer open slides the whole column clear of it, so every other tab
+   stays reachable instead of hiding behind the panel. */
+.lp-rail.lp-rail-shifted { right: var(--lp-w); }
+
+.lp-tab {
+    background: var(--lp-green);
+    color: #fff;
+    border: 0;
+    border-radius: 6px 0 0 6px;
+    padding: 14px 9px;
+    cursor: pointer;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, .22);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    letter-spacing: .6px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: background .2s;
+}
+.lp-tab:hover { background: var(--lp-green-d); }
+.lp-tab:focus { outline: none; }
+
+.lp-count {
+    display: block;
+    margin-bottom: 6px;
+    background: #fff;
+    color: var(--lp-green);
+    border-radius: 10px;
+    padding: 2px 0;
+    writing-mode: horizontal-tb;
+    font-size: 12px;
+    min-width: 22px;
+    text-align: center;
+}
+
+/* A quiet pulse, so a glance at the edge of the screen tells you it is live. */
+.lp-tab.lp-beat .lp-count { animation: lpBeat .9s ease; }
+@keyframes lpBeat {
+    0%   { transform: scale(1);    background: #fff; }
+    40%  { transform: scale(1.35); background: #f39c12; color: #fff; }
+    100% { transform: scale(1);    background: #fff; }
+}
+
+/* The master fold. Somebody who does not want the rail at all gets one small
+   handle back rather than a column of tabs. */
+.lp-toggle {
+    background: #4c5f6b;
+    color: #fff;
+    border: 0;
+    border-radius: 6px 0 0 6px;
+    padding: 9px 7px;
+    font-size: 12px;
+    cursor: pointer;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, .22);
+    opacity: .85;
+}
+.lp-toggle:hover { opacity: 1; }
+.lp-toggle:focus { outline: none; }
+
+/* ── The drawer ─────────────────────────────────────────────────────────── */
+.lp-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: var(--lp-w);
+    height: 100%;
+    z-index: 1035;
+    background: #f7f9fa;
+    border-left: 1px solid #d6dee2;
+    box-shadow: -6px 0 22px rgba(0, 0, 0, .16);
+    transform: translateX(100%);
+    display: flex;
+    flex-direction: column;
+
+    /* Off-screen is not the same as gone: a translated panel keeps its buttons
+       in the tab order, so a keyboard user tabs into a drawer they cannot see.
+       visibility takes it out, delayed so it does not cut the slide-out short. */
+    visibility: hidden;
+    transition: transform .3s cubic-bezier(.4, 0, .2, 1), visibility 0s linear .3s;
+}
+.lp-panel.lp-panel-open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform .3s cubic-bezier(.4, 0, .2, 1), visibility 0s;
+}
+
+.lp-head {
+    background: var(--lp-green);
+    color: #fff;
+    padding: 12px 14px;
+    flex: 0 0 auto;
+}
+.lp-head h4 { margin: 0; font-size: 15px; font-weight: 600; }
+.lp-x {
+    float: right; background: none; border: 0; color: #fff;
+    font-size: 18px; line-height: 1; opacity: .85; cursor: pointer;
+}
+.lp-x:hover { opacity: 1; }
+.lp-sub { font-size: 11px; opacity: .9; margin-top: 3px; }
+
+.lp-ctl {
+    padding: 8px 14px; background: #fff;
+    border-bottom: 1px solid var(--lp-line); flex: 0 0 auto;
+}
+.lp-ctl label { font-size: 11px; color: var(--lp-mute); margin: 0 6px 0 0; font-weight: 600; }
+.lp-ctl select {
+    font-size: 12px; padding: 2px 4px;
+    border: 1px solid #d6dee2; border-radius: 3px;
+}
+.lp-ctl-row { display: flex; align-items: center; }
+.lp-ctl-row + .lp-ctl-row { margin-top: 7px; }
+
+/* Free / Paid. Both counts are computed BEFORE the boxes are applied, so
+   unticking one never makes its own total disappear. */
+.lp-chk {
+    font-size: 12px; color: #4c5f6b; font-weight: 600;
+    margin: 0 16px 0 0; cursor: pointer; user-select: none;
+}
+.lp-chk input { margin-right: 5px; vertical-align: -1px; cursor: pointer; }
+.lp-chk b { border-radius: 8px; padding: 1px 6px; font-size: 10px; margin-left: 3px; }
+.lp-chk-free b { background: #eef2f4; color: #4c5f6b; }
+.lp-chk-paid b { background: var(--lp-green); color: #fff; }
+.lp-chk-web b  { background: #eef4f8; color: #4c5f6b; }
+.lp-chk-app b  { background: #605ca8; color: #fff; }
+
+.lp-list { flex: 1 1 auto; overflow-y: auto; padding: 8px; }
+
+.lp-foot {
+    flex: 0 0 auto; padding: 6px 14px; background: #fff;
+    border-top: 1px solid var(--lp-line); font-size: 10px; color: #a4b2ba;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+.lp-item {
+    background: #fff;
+    border: 1px solid var(--lp-line);
+    border-left: 3px solid #bdc9d0;
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 7px;
+    opacity: 0;
+    transform: translateX(26px);
+    animation: lpIn .34s cubic-bezier(.2, .8, .3, 1) forwards;
+}
+@keyframes lpIn { to { opacity: 1; transform: translateX(0); } }
+
+/* Somebody who was not on the last refresh. */
+.lp-item.lp-new { border-left-color: #f39c12; background: #fffdf6; }
+
+.lp-name { font-weight: 600; font-size: 13px; color: var(--lp-ink); }
+.lp-mob {
+    font-size: 13px; color: var(--lp-blue);
+    font-family: Menlo, Consolas, monospace; margin-top: 1px;
+}
+.lp-do { font-size: 12px; color: #4c5f6b; margin-top: 4px; font-weight: 600; }
+.lp-on { font-size: 11px; color: var(--lp-mute); margin-top: 2px; word-break: break-all; }
+/* react-icons render <svg>, not <i> — the source's FontAwesome <i> selectors
+   would silently match nothing here. */
+.lp-on svg { margin-right: 3px; vertical-align: -1px; }
+.lp-ago { font-size: 10px; color: #a4b2ba; float: right; }
+
+/* Still there, or only lately there.
+
+   The user app sends no heartbeat — it records actions — so "online" here
+   means "did something in the last five minutes", not "has a socket open".
+   That is the strongest honest claim a panel built on actions can make, and
+   the tooltip says as much so nobody reads more into the dot than is there. */
+.lp-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 5px; vertical-align: 0; background: #c4ced4;
+}
+.lp-dot-on { background: var(--lp-green); animation: lpPing 1.8s ease-out infinite; }
+.lp-st { font-weight: 600; }
+.lp-st-on { color: var(--lp-green); }
+
+@keyframes lpPing {
+    0%   { box-shadow: 0 0 0 0 rgba(0, 166, 90, .5); }
+    70%  { box-shadow: 0 0 0 6px rgba(0, 166, 90, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 166, 90, 0); }
+}
+
+/* Left border by action family — the same colour language the full-page
+   Live User Activity screen uses for its badges. */
+.lp-contact   { border-left-color: #dd4b39; }
+.lp-payment   { border-left-color: var(--lp-green); }
+.lp-property  { border-left-color: var(--lp-blue); }
+.lp-favourite { border-left-color: #f39c12; }
+.lp-login     { border-left-color: #605ca8; }
+.lp-view      { border-left-color: #bdc9d0; }
+
+/* FREE / PAID, and the guest tag. */
+.lp-t { border-radius: 8px; font-size: 9px; padding: 1px 5px; margin-left: 4px; }
+.lp-t-paid  { background: var(--lp-green); color: #fff; }
+.lp-t-free  { background: #eef2f4; color: #4c5f6b; }
+.lp-t-guest { background: #f2f6f8; color: #6b7d88; border: 1px solid var(--lp-line); }
+/* Where they came in. Purple for the app so it reads apart from the money
+   badge beside it at a glance rather than on a second look. */
+.lp-t-app   { background: #605ca8; color: #fff; }
+.lp-t-web   { background: #eef4f8; color: #4c5f6b; border: 1px solid #d6e4ee; }
+
+/* Which road the money came in by, spelled out under the badges. */
+.lp-via {
+    font-size: 10px; color: #1e7e34; margin-top: 2px;
+    font-style: italic; letter-spacing: .2px;
+}
+.lp-props {
+    display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: 8px;
+    background: #eef4f8; border: 1px solid #d6e4ee; color: #65747d;
+    font-size: 9px; font-weight: 600;
+}
+
+.lp-btns { margin-top: 7px; display: flex; gap: 6px; }
+.lp-b {
+    flex: 1 1 0;
+    border: 1px solid #d6dee2;
+    background: #fff;
+    color: #4c5f6b;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 0;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+}
+.lp-b svg { margin-right: 4px; vertical-align: -2px; }
+.lp-b:hover { background: #f2f6f8; border-color: #b9c6cd; }
+.lp-b-h:hover { color: var(--lp-blue); border-color: var(--lp-blue); }
+.lp-b:focus { outline: none; }
+
+.lp-empty { text-align: center; color: var(--lp-mute); font-size: 12px; padding: 26px 14px; }
+.lp-empty svg { display: block; margin: 0 auto 8px; font-size: 26px; opacity: .45; }
+
+@media (max-width: 480px) {
+    .lp-panel { width: 86%; }
+    .lp-rail.lp-rail-shifted { right: 86%; }
+}
+
+/* Somebody watching a panel all day should be able to turn the movement off. */
+@media (prefers-reduced-motion: reduce) {
+    .lp-dot-on,
+    .lp-tab.lp-beat .lp-count { animation: none; }
+    .lp-item { animation-duration: .01ms; }
+}

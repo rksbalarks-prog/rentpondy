@@ -39,6 +39,7 @@ let cache = {
   noResponsePhones: new Set(),
   visitorPhones: new Set(),
   notInterestedPhones: new Set(),
+  ringPhones: new Set(),
   loaded: false,
   promise: null,
 };
@@ -49,12 +50,13 @@ const fetchOnce = async () => {
 
   cache.promise = (async () => {
     const safeGet = (url) => axios.get(url).then(r => r.data).catch(() => null);
-    const [ownerRes, tenantRes, noResponseRes, visitorRes, notInterestedRes] = await Promise.all([
+    const [ownerRes, tenantRes, noResponseRes, visitorRes, notInterestedRes, ringRes] = await Promise.all([
       safeGet(`${API}/followup-list`),
       safeGet(`${API}/followup-list-buyer`),
       safeGet(`${API}/noresponse-followup-list`),
       safeGet(`${API}/visitor-followup-list`),
       safeGet(`${API}/notinterested-followup-list`),
+      safeGet(`${API}/ring-followup-list`),
     ]);
 
     const collectPhones = (res) => {
@@ -72,8 +74,9 @@ const fetchOnce = async () => {
     const noResponsePhones = collectPhones(noResponseRes);
     const visitorPhones = collectPhones(visitorRes);
     const notInterestedPhones = collectPhones(notInterestedRes);
+    const ringPhones = collectPhones(ringRes);
 
-    cache = { ownerPhones, tenantPhones, noResponsePhones, visitorPhones, notInterestedPhones, loaded: true, promise: null };
+    cache = { ownerPhones, tenantPhones, noResponsePhones, visitorPhones, notInterestedPhones, ringPhones, loaded: true, promise: null };
     return cache;
   })();
 
@@ -86,6 +89,7 @@ const Ctx = createContext({
   noResponsePhones: new Set(),
   visitorPhones: new Set(),
   notInterestedPhones: new Set(),
+  ringPhones: new Set(),
   loaded: false,
   refresh: () => {},
   hasFollowup: () => false,
@@ -98,6 +102,7 @@ export const FollowupProvider = ({ children }) => {
     noResponsePhones: cache.noResponsePhones,
     visitorPhones: cache.visitorPhones,
     notInterestedPhones: cache.notInterestedPhones,
+    ringPhones: cache.ringPhones,
     loaded: cache.loaded,
   });
 
@@ -117,12 +122,13 @@ export const FollowupProvider = ({ children }) => {
       noResponsePhones: new Set(c.noResponsePhones),
       visitorPhones: new Set(c.visitorPhones),
       notInterestedPhones: new Set(c.notInterestedPhones),
+      ringPhones: new Set(c.ringPhones),
       loaded: true,
     });
   }, []);
 
   const refresh = useCallback(async () => {
-    cache = { ownerPhones: new Set(), tenantPhones: new Set(), noResponsePhones: new Set(), visitorPhones: new Set(), notInterestedPhones: new Set(), loaded: false, promise: null };
+    cache = { ownerPhones: new Set(), tenantPhones: new Set(), noResponsePhones: new Set(), visitorPhones: new Set(), notInterestedPhones: new Set(), ringPhones: new Set(), loaded: false, promise: null };
     await load();
   }, [load]);
 
@@ -142,8 +148,9 @@ export const FollowupProvider = ({ children }) => {
     if (type === 'noresponse') return state.noResponsePhones.has(p);
     if (type === 'visitor') return state.visitorPhones.has(p);
     if (type === 'notinterested') return state.notInterestedPhones.has(p);
+    if (type === 'ring') return state.ringPhones.has(p);
     // fallback (e.g. type 'any'): any bucket counts as "has follow-up"
-    return state.ownerPhones.has(p) || state.tenantPhones.has(p) || state.noResponsePhones.has(p) || state.visitorPhones.has(p) || state.notInterestedPhones.has(p);
+    return state.ownerPhones.has(p) || state.tenantPhones.has(p) || state.noResponsePhones.has(p) || state.visitorPhones.has(p) || state.notInterestedPhones.has(p) || state.ringPhones.has(p);
   }, [state]);
 
   const value = useMemo(() => ({
@@ -152,6 +159,7 @@ export const FollowupProvider = ({ children }) => {
     noResponsePhones: state.noResponsePhones,
     visitorPhones: state.visitorPhones,
     notInterestedPhones: state.notInterestedPhones,
+    ringPhones: state.ringPhones,
     loaded: state.loaded,
     refresh,
     hasFollowup,

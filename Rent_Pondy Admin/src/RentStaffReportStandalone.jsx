@@ -203,8 +203,8 @@ const MAX_DATE_COLUMNS = 45;
 // Every follow-up metric is tracked split by category: `<base>_prop` counts
 // Property follow-ups (Rent ID), `<base>_ten` Tenant follow-ups (RA ID),
 // `<base>_nores` No-Response follow-ups, `<base>_visit` Visitor follow-ups and
-// `<base>_notint` Not-Interested follow-ups.
-// The two follow-up tables render each as a "P / T / N / V / NI" cell, with a
+// `<base>_notint` Not-Interested follow-ups and `<base>_ring` Ring follow-ups.
+// The two follow-up tables render each as a "P / T / N / V / NI / R" cell, with a
 // legend, so the row count stays readable.
 const FOLLOWUP_BASES = [
   'allFollowups',
@@ -222,7 +222,7 @@ const makeSplitZero = () => {
   const z = {};
   FOLLOWUP_BASES.forEach((b) => {
     z[`${b}_prop`] = 0; z[`${b}_ten`] = 0; z[`${b}_nores`] = 0; z[`${b}_visit`] = 0;
-    z[`${b}_notint`] = 0;
+    z[`${b}_notint`] = 0; z[`${b}_ring`] = 0;
   });
   return z;
 };
@@ -233,6 +233,7 @@ const SOURCE_SUFFIX = {
   noresponse: '_nores',
   visitor: '_visit',
   notinterested: '_notint',
+  ring: '_ring',
   property: '_prop',
 };
 const catOf = (source) => SOURCE_SUFFIX[source] || '_prop';
@@ -257,6 +258,7 @@ const splitPair = (bucket, base) => ({
   nores: (bucket && bucket[`${base}_nores`]) || 0,
   visit: (bucket && bucket[`${base}_visit`]) || 0,
   notint: (bucket && bucket[`${base}_notint`]) || 0,
+  ring: (bucket && bucket[`${base}_ring`]) || 0,
 });
 
 // Standalone (no-auth) duplicate of RentStaffReport. Reachable directly at
@@ -375,7 +377,7 @@ const RentStaffReportStandalone = () => {
         tenantPaidRes, tenantFailedRes, tenantNowRes, tenantLaterRes,
         pointsPaidRes, pointsNowRes, pointsLaterRes, pointsFailedRes,
         customerCareRes, contactUsRes, needHelpRes, reportedRes, soldOutRes,
-        followupListRes, followupBuyerListRes, followupNoResponseListRes, followupVisitorListRes, followupNotInterestedListRes, billsRes,
+        followupListRes, followupBuyerListRes, followupNoResponseListRes, followupVisitorListRes, followupNotInterestedListRes, followupRingListRes, billsRes,
       ] = await Promise.all([
         // OTP / login users
         safeGet(`${API}/user/alls`),
@@ -417,12 +419,14 @@ const RentStaffReportStandalone = () => {
         //   - /noresponse-followup-list  → No-Response follow-ups
         //   - /visitor-followup-list     → Visitor follow-ups
         //   - /notinterested-followup-list → Not-Interested follow-ups
-        // All five feed the same Staff Daily Follow-up / Hourly tables.
+        //   - /ring-followup-list          → Ring follow-ups
+        // All six feed the same Staff Daily Follow-up / Hourly tables.
         safeGet(`${API}/followup-list`),
         safeGet(`${API}/followup-list-buyer`),
         safeGet(`${API}/noresponse-followup-list`),
         safeGet(`${API}/visitor-followup-list`),
         safeGet(`${API}/notinterested-followup-list`),
+        safeGet(`${API}/ring-followup-list`),
         safeGet(`${API}/bills`),
       ]);
 
@@ -555,9 +559,12 @@ const RentStaffReportStandalone = () => {
         .map(f => ({ ...f, _source: 'visitor' }));
       const notInterestedFollowups = safeArray(followupNotInterestedListRes?.data)
         .map(f => ({ ...f, _source: 'notinterested' }));
+      const ringFollowups = safeArray(followupRingListRes?.data)
+        .map(f => ({ ...f, _source: 'ring' }));
       const allFollowups = [
         ...propertyFollowups, ...tenantFollowups,
         ...noResponseFollowups, ...visitorFollowups, ...notInterestedFollowups,
+        ...ringFollowups,
       ];
       const followupRows = allFollowups.filter(f => inRange(f.createdAt));
       setFollowupsInRange(followupRows);
@@ -1033,7 +1040,8 @@ const RentStaffReportStandalone = () => {
         const n = (bucket && bucket[`${m.base}_nores`]) || 0;
         const v = (bucket && bucket[`${m.base}_visit`]) || 0;
         const ni = (bucket && bucket[`${m.base}_notint`]) || 0;
-        return `${p} / ${t} / ${n} / ${v} / ${ni}`;
+        const r = (bucket && bucket[`${m.base}_ring`]) || 0;
+        return `${p} / ${t} / ${n} / ${v} / ${ni} / ${r}`;
       }
       return formatVal((bucket || {})[m.key], m.format);
     };
@@ -1071,7 +1079,7 @@ const RentStaffReportStandalone = () => {
 
     const metricRowsAoa = metricDefs.map((m) =>
       buildRow(
-        m.label + (m.split ? ' (P / T / N / V / NI)' : ''),
+        m.label + (m.split ? ' (P / T / N / V / NI / R)' : ''),
         (g) => formatCell(g && g.total, m),
         formatCell(grandTotal, m)
       )
@@ -1185,7 +1193,8 @@ const RentStaffReportStandalone = () => {
         const n = (bucket && bucket[`${m.base}_nores`]) || 0;
         const v = (bucket && bucket[`${m.base}_visit`]) || 0;
         const ni = (bucket && bucket[`${m.base}_notint`]) || 0;
-        return `${p} / ${t} / ${n} / ${v} / ${ni}`;
+        const r = (bucket && bucket[`${m.base}_ring`]) || 0;
+        return `${p} / ${t} / ${n} / ${v} / ${ni} / ${r}`;
       }
       return formatVal((bucket || {})[m.key], m.format);
     };
@@ -1221,7 +1230,7 @@ const RentStaffReportStandalone = () => {
 
     const metricRowsAoa = metricDefs.map((m) =>
       buildRow(
-        m.label + (m.split ? ' (P / T / N / V / NI)' : ''),
+        m.label + (m.split ? ' (P / T / N / V / NI / R)' : ''),
         (g) => formatCell(g && g.total, m),
         formatCell(grandTotal, m)
       )
@@ -1286,7 +1295,8 @@ const RentStaffReportStandalone = () => {
         const n = (bucket && bucket[`${m.base}_nores`]) || 0;
         const v = (bucket && bucket[`${m.base}_visit`]) || 0;
         const ni = (bucket && bucket[`${m.base}_notint`]) || 0;
-        return `${p} / ${t} / ${n} / ${v} / ${ni}`;
+        const r = (bucket && bucket[`${m.base}_ring`]) || 0;
+        return `${p} / ${t} / ${n} / ${v} / ${ni} / ${r}`;
       }
       return formatVal((bucket || {})[m.key], m.format);
     };
@@ -1309,7 +1319,7 @@ const RentStaffReportStandalone = () => {
     const hourRow = ['Hour', ...hourlyBuckets.map((b) => b.label), 'Total (EOD)'];
 
     const metricRows = hourlyMetricRows.map((m) => [
-      m.label + (m.split ? ' (P / T / N / V / NI)' : ''),
+      m.label + (m.split ? ' (P / T / N / V / NI / R)' : ''),
       ...hourlyBuckets.map((b) => formatCell(b, m)),
       formatCell(hourlyTotal, m),
     ]);
@@ -1727,7 +1737,7 @@ const RentStaffReportStandalone = () => {
       <div style={{ background: '#fff', borderRadius: '8px', padding: '12px', border: '1px solid #e5e7eb' }}>
         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
           Each column is one staff member on a given day. Follow-up rows show{' '}
-          <strong>Property / Tenant / No-Response / Visitor / Not Interested</strong> (P = Rent ID, T = RA ID, N = No Response, V = Visitor, NI = Not Interested); the{' '}
+          <strong>Property / Tenant / No-Response / Visitor / Not Interested / Ring</strong> (P = Rent ID, T = RA ID, N = No Response, V = Visitor, NI = Not Interested, R = Ring); the{' '}
           <strong>Total</strong> column is the grand total across the whole selected date range.
           Counts are based on follow-up <em>created</em> time and credited to every admin name on the record.
         </div>
@@ -1743,8 +1753,8 @@ const RentStaffReportStandalone = () => {
             // Render a metric cell from a bucket. Split rows show "Property / Tenant".
             const renderCell = (bucket, m) => {
               if (m.split) {
-                const { prop, ten, nores, visit, notint } = splitPair(bucket, m.base);
-                return `${prop} / ${ten} / ${nores} / ${visit} / ${notint}`;
+                const { prop, ten, nores, visit, notint, ring } = splitPair(bucket, m.base);
+                return `${prop} / ${ten} / ${nores} / ${visit} / ${notint} / ${ring}`;
               }
               return fmt((bucket || {})[m.key], m.format);
             };
@@ -1828,7 +1838,7 @@ const RentStaffReportStandalone = () => {
                     const rowKey = m.key || m.base;
                     return (
                       <tr key={rowKey}>
-                        <th style={labelTh}>{m.label}{m.split ? ' (P / T / N / V / NI)' : ''}</th>
+                        <th style={labelTh}>{m.label}{m.split ? ' (P / T / N / V / NI / R)' : ''}</th>
                         {dailyStaffGroups.map((g) => (
                           <td key={`${rowKey}-${g.staff}-${g.date}`} style={dataTd}>
                             {renderCell(g.total, m)}
@@ -1914,8 +1924,8 @@ const RentStaffReportStandalone = () => {
             // Split rows show "Property / Tenant"; plain rows show one value.
             const renderCellH = (bucket, m) => {
               if (m.split) {
-                const { prop, ten, nores, visit, notint } = splitPair(bucket, m.base);
-                return `${prop} / ${ten} / ${nores} / ${visit} / ${notint}`;
+                const { prop, ten, nores, visit, notint, ring } = splitPair(bucket, m.base);
+                return `${prop} / ${ten} / ${nores} / ${visit} / ${notint} / ${ring}`;
               }
               return fmtH((bucket || {})[m.key], m.format);
             };
@@ -1996,7 +2006,7 @@ const RentStaffReportStandalone = () => {
                     const rowKey = m.key || m.base;
                     return (
                       <tr key={rowKey}>
-                        <th style={labelTh}>{m.label}{m.split ? ' (P / T / N / V / NI)' : ''}</th>
+                        <th style={labelTh}>{m.label}{m.split ? ' (P / T / N / V / NI / R)' : ''}</th>
                         {hourlyBuckets.map((b) => (
                           <td key={`${rowKey}-${b.hour}`} style={dataTd}>
                             {renderCellH(b, m)}

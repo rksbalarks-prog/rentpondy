@@ -181,13 +181,14 @@ const storage = multer.diskStorage({
 
     const index = req.imageIndexMap[file.fieldname];
     const ext = path.extname(file.originalname);
-    // Include a timestamp so a re-uploaded image never reuses an old image's
-    // filename/URL. Reusing the name (rentId_<id>_photos_1) overwrote the file
-    // on disk but left the URL identical, so the browser/CDN kept serving the
-    // stale cached image after an edit ("old image still shows"). A fresh name
-    // gives a fresh URL and defeats that cache. (index disambiguates files that
-    // share the same millisecond within one request.)
-    const newName = `rentId_${rentId}_${file.fieldname}_${index}_${Date.now()}${ext}`;
+    // Every saved file needs a unique name. `index` restarts at 1 on each
+    // request, so a plain rentId_<id>_photos_1 name made an edit that adds one
+    // photo overwrite the property's existing photo #1 on disk — the saved
+    // photos array then held that same path twice (new image shown twice, the
+    // original lost) and the unchanged URL kept serving a stale cached image.
+    // timestamp + random suffix fixes both.
+    const unique = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const newName = `rentId_${rentId}_${file.fieldname}_${index}_${unique}${ext}`;
     cb(null, newName);
   },
 });
@@ -322,6 +323,17 @@ router.post('/update-rent-property', (req, res) => {
         ? req.files['photos'].map(file => path.join('uploads', file.filename))
         : [];
 
+      // Drop blanks and repeats — two identical paths render as the same
+      // image twice and make the default (index 0) ambiguous.
+      const dedupePhotos = (list) => {
+        const seen = new Set();
+        return list.filter((p) => {
+          if (!p || seen.has(p)) return false;
+          seen.add(p);
+          return true;
+        });
+      };
+
       const parseJsonArray = (raw) => {
         if (raw === undefined || raw === null) return null;
         try {
@@ -340,7 +352,8 @@ router.post('/update-rent-property', (req, res) => {
         // existing path string or '__NEW__' which consumes one new upload
         // in upload order.
         let newIdx = 0;
-        user.photos = photoOrder
+        user.photos = dedupePhotos(
+          photoOrder
           .map((item) => {
             if (item === '__NEW__') {
               const next = newPhotoPaths[newIdx];
@@ -349,11 +362,12 @@ router.post('/update-rent-property', (req, res) => {
             }
             return item;
           })
-          .filter(Boolean);
+          .filter(Boolean)
+        );
       } else if (existingPhotosBody) {
-        user.photos = [...existingPhotosBody, ...newPhotoPaths];
+        user.photos = dedupePhotos([...existingPhotosBody, ...newPhotoPaths]);
       } else if (newPhotoPaths.length > 0) {
-        user.photos = newPhotoPaths;
+        user.photos = dedupePhotos(newPhotoPaths);
       }
 
       // Keep the city base (PY/CH) in sync. A PY- or CH-scoped admin

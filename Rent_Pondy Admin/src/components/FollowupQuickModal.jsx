@@ -13,9 +13,10 @@ import { Modal, Button } from 'react-bootstrap';
  *   remark 'noresponse'  (No response) → POST /noresponse-followup-create → No Response Followups Data
  *   remark 'visitor'     (Visitor)     → POST /visitor-followup-create    → Visitor Followups Data
  *   remark 'notinterested' (Not interested) → POST /notinterested-followup-create → Not Interested Followups Data
+ *   remark 'ring'        (Ring)         → POST /ring-followup-create         → Ring Followups Data
  *
  * Owner/Tenant reuse the existing collections (so they appear in the existing
- * pages); No-Response, Visitor and Not-Interested each use their own
+ * pages); No-Response, Visitor, Not-Interested and Ring each use their own
  * collection / page.
  * Tenant rows have no Ra_Id here, so 'N/A' is sent (matching the manual
  * "Open RA Follow-Up" create modal).
@@ -50,6 +51,12 @@ const REMARK_CONFIG = {
     label: 'Not Interested',
     badge: 'bg-danger',
     endpoint: '/notinterested-followup-create',
+    extra: {},
+  },
+  ring: {
+    label: 'Ring',
+    badge: 'bg-success',
+    endpoint: '/ring-followup-create',
     extra: {},
   },
 };
