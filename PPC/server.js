@@ -107,6 +107,7 @@ import RcmRouter from "./Rcm/RcmRouter.js"; // Call Management (/process/dashboa
 // Adexpress classified-weekly importer (additive: own collections + own routes)
 import AdExpressRouter from './AdExpress/AdExpressRouter.js';
 import adExpressSchedule from './AdExpress/schedule.js';
+import autoExpire from './AutoExpire/index.js'; // nightly auto-expire (own collections + /auto-expire/* routes)
 // import RoleAccessRouter from './RoleAccess/RoleAccessRouter.js'; // Role Access routes
 
 // AI voice + chat assistant (additive layer — see ./assistant/).
@@ -834,6 +835,7 @@ app.use("/PPC", PmBulkRouter); // PM Bulk WhatsApp routes
 app.use("/PPC/api/bulk-whatsapp", BulkWhatsappRouter); // Admin Bulk WhatsApp (campaign API + large file uploads)
 app.use("/PPC", RcmRouter); // Call Management (/process/dashboard/rp.wfh) routes
 app.use("/PPC", AdExpressRouter); // Adexpress import: /adexpress/* (staging only)
+app.use("/PPC", autoExpire.router); // Auto-expire: /auto-expire/status, /preview, /run-now, /mode
 // app.use("/PPC", RoleAccessRouter); // Roles Access routes
 
 // ── WhatsApp (SmartGrowth AI campaign API) ───────────────────────────────────
@@ -880,4 +882,6 @@ app.listen(PORT, () => {
   adminExcelMail.start();
   // Nightly Adexpress pickup: newest issue -> rent ads -> PreApproved.
   adExpressSchedule.start();
+  // Nightly auto-expire (03:00 IST). Starts in dry-run: reports only.
+  autoExpire.start();
 });
