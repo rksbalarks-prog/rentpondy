@@ -25,8 +25,7 @@ module.exports = {
   // Starting mode. A mode saved through POST /auto-expire/mode overrides it.
   mode: modeOf(process.env.AUTO_EXPIRE_MODE),
 
-  // 03:00 IST, clear of the 02:30 backup, 02:40 Adexpress check and the
-  // Saturday 16:30 Adexpress import.
+  // 03:00 IST, clear of the 02:30 backup and the Saturday 16:00 Adexpress import.
   cron: process.env.AUTO_EXPIRE_CRON || '0 3 * * *',
   timezone: process.env.AUTO_EXPIRE_TZ || 'Asia/Kolkata',
 
