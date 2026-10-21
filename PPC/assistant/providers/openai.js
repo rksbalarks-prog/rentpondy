@@ -85,24 +85,26 @@ async function transcribe({ buffer, filename, mimetype, prompt, language }) {
   return { text: (res.text || '').trim() };
 }
 
-async function speak({ text, instructions, voice, format = 'mp3' }) {
-  const res = await client().audio.speech.create({
-    model: config.openai.ttsModel,
-    voice: voice || config.openai.ttsVoice,
-    input: text,
-    // Without accent/pacing instructions the model reads Tamil in a flat American
-    // accent — the single most jarring thing about TTS here.
-    instructions: instructions || undefined,
-    response_format: format,
-  });
-  const audio = Buffer.from(await res.arrayBuffer());
-  const contentType =
-    format === 'wav' ? 'audio/wav' :
-    format === 'opus' ? 'audio/opus' :
-    format === 'aac' ? 'audio/aac' :
-    format === 'flac' ? 'audio/flac' :
-    'audio/mpeg';
-  return { audio, contentType };
+// Text-to-speech (gpt-4o-mini-tts) switched OFF 2026-10-13 to cut OpenAI cost.
+async function speak() {
+  throw new Error('tts_disabled');
+  // const res = await client().audio.speech.create({
+  //   model: config.openai.ttsModel,
+  //   voice: voice || config.openai.ttsVoice,
+  //   input: text,
+  //   // Without accent/pacing instructions the model reads Tamil in a flat American
+  //   // accent — the single most jarring thing about TTS here.
+  //   instructions: instructions || undefined,
+  //   response_format: format,
+  // });
+  // const audio = Buffer.from(await res.arrayBuffer());
+  // const contentType =
+  //   format === 'wav' ? 'audio/wav' :
+  //   format === 'opus' ? 'audio/opus' :
+  //   format === 'aac' ? 'audio/aac' :
+  //   format === 'flac' ? 'audio/flac' :
+  //   'audio/mpeg';
+  // return { audio, contentType };
 }
 
 export default { name: 'openai', chatStream, transcribe, speak };

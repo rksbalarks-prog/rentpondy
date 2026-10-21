@@ -21,8 +21,10 @@ const config = {
     apiKey: process.env.OPENAI_API_KEY || '',
     chatModel: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
     transcribeModel: process.env.OPENAI_TRANSCRIBE_MODEL || 'gpt-4o-transcribe',
-    ttsModel: process.env.OPENAI_TTS_MODEL || 'gpt-4o-mini-tts',
-    ttsVoice: process.env.OPENAI_TTS_VOICE || 'coral',
+    // Text-to-speech switched OFF 2026-10-13 to cut OpenAI cost — /speak now
+    // answers 503 tts_disabled and the clients fall back to text-only replies.
+    // ttsModel: process.env.OPENAI_TTS_MODEL || 'gpt-4o-mini-tts',
+    // ttsVoice: process.env.OPENAI_TTS_VOICE || 'coral',
   },
 
   maxToolLoops: int(process.env.ASSISTANT_MAX_TOOL_LOOPS, 6),

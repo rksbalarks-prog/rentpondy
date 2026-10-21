@@ -288,42 +288,46 @@ router.post('/transcribe', requireAssistantSession, upload.single('audio'), asyn
 });
 
 // ── POST /speak ───────────────────────────────────────────────────────────────
-router.post('/speak', requireAssistantSession, async (req, res) => {
-  const { phone, key } = req.assistant;
-
-  const rl = checkRate(key, 'voice');
-  if (!rl.ok) return res.status(429).json({ error: 'rate_limited', retryAfterMs: rl.retryAfterMs });
-
-  const { ok, errors, value } = validate(req.body, {
-    text: { type: 'string', required: true, maxLen: 2000 },
-    format: { type: 'string', maxLen: 8, default: 'mp3' },
-    lang: { type: 'string', maxLen: 5 },
-  });
-  if (!ok) return res.status(400).json({ error: errors.join('; ') });
-
-  const started = Date.now();
-  try {
-    assertProviderReady();
-    const provider = getProvider();
-    const lang = value.lang || detectLang(value.text);
-    // Accent/pacing instructions — without these the model reads Tamil in a flat
-    // American accent.
-    const instructions =
-      lang === 'ta'
-        ? 'Speak conversational Puducherry Tanglish — Tamil mixed with English. Pronounce the Tamil words with a warm, natural South-Indian accent, and pronounce the English words (BHK, rent, floor, advance, deposit, sqft, house, etc.) in natural Indian English — do NOT Tamil-ise them. Unhurried pace, natural breath at commas, friendly and clear.'
-        : 'Speak in English with a warm, natural Indian-English accent. Unhurried pace, natural breath at commas, friendly and clear.';
-
-    const { audio, contentType } = await provider.speak({ text: value.text, format: value.format, instructions });
-
-    logEvent({ phone, provider: config.provider, event: 'speak', chars: value.text.length, bytes: audio.length, lang, outcome: 'ok', latencyMs: Date.now() - started });
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Length', audio.length);
-    res.send(audio);
-  } catch (e) {
-    logEvent({ phone, provider: config.provider, event: 'speak', outcome: 'error', error: e.message, latencyMs: Date.now() - started });
-    res.status(500).json({ error: 'tts_failed', detail: e.message });
-  }
-});
+// Text-to-speech (gpt-4o-mini-tts) switched OFF 2026-10-13 to cut OpenAI cost.
+// The web + Flutter clients treat any non-200 here as "no audio" and stay
+// text-only, so chat and voice input keep working.
+router.post('/speak', (req, res) => res.status(503).json({ error: 'tts_disabled' }));
+// router.post('/speak', requireAssistantSession, async (req, res) => {
+//   const { phone, key } = req.assistant;
+//
+//   const rl = checkRate(key, 'voice');
+//   if (!rl.ok) return res.status(429).json({ error: 'rate_limited', retryAfterMs: rl.retryAfterMs });
+//
+//   const { ok, errors, value } = validate(req.body, {
+//     text: { type: 'string', required: true, maxLen: 2000 },
+//     format: { type: 'string', maxLen: 8, default: 'mp3' },
+//     lang: { type: 'string', maxLen: 5 },
+//   });
+//   if (!ok) return res.status(400).json({ error: errors.join('; ') });
+//
+//   const started = Date.now();
+//   try {
+//     assertProviderReady();
+//     const provider = getProvider();
+//     const lang = value.lang || detectLang(value.text);
+//     // Accent/pacing instructions — without these the model reads Tamil in a flat
+//     // American accent.
+//     const instructions =
+//       lang === 'ta'
+//         ? 'Speak conversational Puducherry Tanglish — Tamil mixed with English. Pronounce the Tamil words with a warm, natural South-Indian accent, and pronounce the English words (BHK, rent, floor, advance, deposit, sqft, house, etc.) in natural Indian English — do NOT Tamil-ise them. Unhurried pace, natural breath at commas, friendly and clear.'
+//         : 'Speak in English with a warm, natural Indian-English accent. Unhurried pace, natural breath at commas, friendly and clear.';
+//
+//     const { audio, contentType } = await provider.speak({ text: value.text, format: value.format, instructions });
+//
+//     logEvent({ phone, provider: config.provider, event: 'speak', chars: value.text.length, bytes: audio.length, lang, outcome: 'ok', latencyMs: Date.now() - started });
+//     res.setHeader('Content-Type', contentType);
+//     res.setHeader('Content-Length', audio.length);
+//     res.send(audio);
+//   } catch (e) {
+//     logEvent({ phone, provider: config.provider, event: 'speak', outcome: 'error', error: e.message, latencyMs: Date.now() - started });
+//     res.status(500).json({ error: 'tts_failed', detail: e.message });
+//   }
+// });
 
 // ── POST /owner-lead ──────────────────────────────────────────────────────────
 // Saves an owner's property-intake from the onboarding flow as a follow-up lead

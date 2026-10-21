@@ -476,6 +476,39 @@ ${
   });
 }
 
+/* ── retired listing (expired / removed) ──────────────────────────────── */
+
+// Served with a 410 / 404 status, so Google drops the URL — but a visitor who
+// arrives from an old search result or a shared link still lands on live
+// listings of the same kind instead of a dead end.
+export function renderRetiredPage(p, related = []) {
+  const city = cityOf(p);
+  const typeSlug = slugify(p.propertyType);
+  const head = [bhkLabel(p), p.propertyType || 'Property'].filter(Boolean).join(' ');
+  const where = localityLabel(p) || city.name;
+  const browsePath = landingPath(city.slug, typeSlug);
+  const browseLabel = `${p.propertyType || 'properties'} for rent in ${city.name}`;
+
+  return layout({
+    title: `Listing not available | ${config.brand}`,
+    description: `This ${head.toLowerCase()} in ${where} is no longer listed. See similar ${browseLabel}.`,
+    canonical: landingUrl(city.slug, typeSlug),
+    robots: 'noindex,follow',
+    crumbs: [
+      { name: 'Home', path: '/' },
+      { name: `${city.name} rentals`, path: landingPath(city.slug) },
+      ...(typeSlug ? [{ name: `${p.propertyType} for rent`, path: browsePath }] : []),
+      { name: 'Not available', path: propertyPath(p) },
+    ],
+    jsonLd: [],
+    body: `<h1>This ${escapeHtml(head)} in ${escapeHtml(where)} is no longer available</h1>
+<p class="sub">Listing ID ${escapeHtml(p.rentId)} is not open for enquiries — it may have been rented out or taken down by the owner.</p>
+<p><a class="cta" href="${escapeHtml(browsePath)}">Browse ${escapeHtml(browseLabel)}</a></p>
+${related.length ? `<h2>Similar properties still available</h2>
+<div class="grid">${related.map(propertyCard).join('')}</div>` : ''}`,
+  });
+}
+
 /* ── 404 ──────────────────────────────────────────────────────────────── */
 
 export function renderNotFound(message = 'This listing is no longer available.') {

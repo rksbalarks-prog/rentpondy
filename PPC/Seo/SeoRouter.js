@@ -15,10 +15,12 @@
 // are reachable at https://rentpondy.com/PPC/... and after it at the clean
 // https://rentpondy.com/... paths.
 
+import { createHash } from 'crypto';
 import express from 'express';
 import config from './seoConfig.js';
 import {
   getProperty,
+  getRetiredProperty,
   getSitemapProperties,
   getLandingProperties,
   getLandingPages,
@@ -28,6 +30,7 @@ import {
 import {
   renderPropertyPage,
   renderLandingPage,
+  renderRetiredPage,
   renderNotFound,
 } from './seoTemplates.js';
 import {
@@ -37,6 +40,7 @@ import {
   titleCaseLocality,
   propertyPath,
   propertyUrl,
+  landingPath,
   landingUrl,
   isoDate,
   escapeXml,
@@ -97,6 +101,24 @@ function urlEntry({ loc, lastmod, changefreq, priority, images }) {
     .join('\n');
 }
 
+// <lastmod> for each child sitemap in the index: the moment its list of URLs
+// last changed. It used to be "now" on every request, which tells Google
+// nothing — so after a night of auto-expiry it kept crawling listings it still
+// believed were submitted and reported them as "Not found (404)". An honest
+// lastmod lets it re-read the sitemap as soon as listings come or go.
+// Only the URL set is hashed: per-URL lastmods move on every page view.
+// In memory, so a restart stamps every map "now" once — harmless.
+const sitemapStamps = new Map(); // sitemap name -> { sig, at }
+
+function changedAt(name, locs) {
+  const sig = createHash('sha1').update(locs.join('\n')).digest('hex');
+  const seen = sitemapStamps.get(name);
+  if (seen && seen.sig === sig) return seen.at;
+  const at = isoDate();
+  sitemapStamps.set(name, { sig, at });
+  return at;
+}
+
 /* ── robots.txt ───────────────────────────────────────────────────────── */
 
 sitemapRouter.get('/robots.txt', (req, res) => {
@@ -135,9 +157,11 @@ sitemapRouter.get('/robots.txt', (req, res) => {
 
 sitemapRouter.get('/sitemap.xml', async (req, res, next) => {
   try {
-    const properties = await getSitemapProperties();
+    const [properties, landingPages] = await Promise.all([
+      getSitemapProperties(),
+      getLandingPages(),
+    ]);
     const chunks = Math.max(1, Math.ceil(properties.length / config.urlsPerSitemap));
-    const now = isoDate();
 
     // Child sitemaps are addressed through whichever prefix this request came
     // in on. In production that is always '' — nginx strips /PPC before Node
@@ -148,9 +172,17 @@ sitemapRouter.get('/sitemap.xml', async (req, res, next) => {
     // dev server mounted under /PPC with no nginx in front.
     const prefix = `${config.siteUrl}${req.baseUrl || ''}`;
     const maps = [
-      `${prefix}/sitemap-pages.xml`,
-      `${prefix}/sitemap-locations.xml`,
-      ...Array.from({ length: chunks }, (_, i) => `${prefix}/sitemap-properties-${i + 1}.xml`),
+      { name: 'sitemap-pages.xml', locs: STATIC_PAGES.map((p) => p.path) },
+      {
+        name: 'sitemap-locations.xml',
+        locs: landingPages.map((p) => landingUrl(p.citySlug, p.typeSlug, p.areaSlug)),
+      },
+      ...Array.from({ length: chunks }, (_, i) => ({
+        name: `sitemap-properties-${i + 1}.xml`,
+        locs: properties
+          .slice(i * config.urlsPerSitemap, (i + 1) * config.urlsPerSitemap)
+          .map(propertyUrl),
+      })),
     ];
 
     sendXml(
@@ -159,8 +191,11 @@ sitemapRouter.get('/sitemap.xml', async (req, res, next) => {
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${maps
   .map(
-    (loc) =>
-      `  <sitemap><loc>${escapeXml(loc)}</loc><lastmod>${now}</lastmod></sitemap>`
+    (m) =>
+      `  <sitemap><loc>${escapeXml(`${prefix}/${m.name}`)}</loc><lastmod>${changedAt(
+        m.name,
+        m.locs
+      )}</lastmod></sitemap>`
   )
   .join('\n')}
 </sitemapindex>`
@@ -188,14 +223,14 @@ const STATIC_PAGES = [
 ];
 
 sitemapRouter.get('/sitemap-pages.xml', (req, res) => {
-  const now = isoDate();
   sendXml(
     res,
     urlset(
       STATIC_PAGES.map((p) =>
         urlEntry({
+          // No <lastmod>: these pages change on a deploy, not on a request, and
+          // a date that is always "now" teaches Google to ignore the field.
           loc: `${config.siteUrl}${p.path}`,
-          lastmod: now,
           changefreq: p.changefreq,
           priority: p.priority,
         })
@@ -256,11 +291,48 @@ sitemapRouter.get('/sitemap-properties-:n.xml', async (req, res, next) => {
 
 /* ── property pages ───────────────────────────────────────────────────── */
 
+// Listings still waiting to go live may yet appear, so they stay a plain 404.
+const AWAITING_STATUSES = new Set(['pending', 'incomplete']);
+const RELATED_LIMIT = 6;
+
+// A listing that has left the public set — mostly the nightly auto-expire. An
+// expired or deleted one answers 410 Gone: the honest "this was here and has
+// gone", which Google drops from its index faster than a 404. Either way the
+// visitor gets similar live listings (same type + locality, then same type,
+// then the city) instead of a dead end.
+async function sendRetired(req, res) {
+  const old = await getRetiredProperty(req.params.rentId);
+  if (!old) return sendHtml(res, renderNotFound(), 404);
+
+  const citySlug = cityOf(old).slug;
+  const typeSlug = slugify(old.propertyType);
+  const areaSlug = slugify(old.area);
+  const tiers = [
+    typeSlug && areaSlug ? { typeSlug, areaSlug } : null,
+    typeSlug ? { typeSlug } : null,
+    {},
+  ].filter(Boolean);
+
+  const related = [];
+  for (const tier of tiers) {
+    if (related.length >= RELATED_LIMIT) break;
+    const { items } = await getLandingProperties({ citySlug, ...tier });
+    for (const p of items) {
+      if (related.length >= RELATED_LIMIT) break;
+      if (!related.some((r) => r.rentId === p.rentId)) related.push(p);
+    }
+  }
+
+  const awaiting =
+    !old.isDeleted && AWAITING_STATUSES.has(String(old.status || '').toLowerCase());
+  return sendHtml(res, renderRetiredPage(old, related), awaiting ? 404 : 410);
+}
+
 async function handleProperty(req, res, next) {
   try {
     const property = await getProperty(req.params.rentId);
     if (!property) {
-      return sendHtml(res, renderNotFound(), 404);
+      return await sendRetired(req, res);
     }
 
     // Canonical slug enforcement: a stale or hand-typed slug 301s to the
@@ -323,10 +395,12 @@ async function handleLanding(req, res, next) {
       areas.find((a) => a.areaSlug === areaSlug)?.areaName ||
       (areaSlug ? titleCaseLocality(items[0]?.area) : '');
 
-    // A type or area that no longer exists in the data is a dead URL.
-    if ((typeSlug && !typeName) || (areaSlug && !areaName)) {
-      return sendHtml(res, renderNotFound('No listings match this page.'), 404);
-    }
+    // A type or locality that has run out of listings (expired, rented out) is
+    // sent one level up — "house for rent in lawspet" -> "house for rent in
+    // pondicherry". 302, not 301: the page returns once listings do, and a
+    // browser would cache a 301 forever.
+    if (typeSlug && !typeName) return res.redirect(302, landingPath(city.slug));
+    if (areaSlug && !areaName) return res.redirect(302, landingPath(city.slug, typeSlug));
 
     sendHtml(
       res,

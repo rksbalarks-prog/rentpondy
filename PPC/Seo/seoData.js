@@ -106,6 +106,33 @@ export function getProperty(rentId) {
 }
 
 /**
+ * A property that exists but is not public (expired, deleted, pending), or null
+ * if the rentId never existed. Only the fields needed to point the visitor at
+ * similar live listings — no description, photos or contact data.
+ */
+export function getRetiredProperty(rentId) {
+  const id = Number(rentId);
+  if (!Number.isFinite(id)) return Promise.resolve(null);
+  return cached(`retired:${id}`, config.cacheTtlMs, () =>
+    AddModel.findOne(
+      { rentId: id },
+      {
+        _id: 0,
+        rentId: 1,
+        status: 1,
+        isDeleted: 1,
+        propertyMode: 1,
+        propertyType: 1,
+        bedrooms: 1,
+        area: 1,
+        city: 1,
+        district: 1,
+      }
+    ).lean()
+  );
+}
+
+/**
  * Every public property, minimal fields, for the sitemap.
  * Sorted newest-first so today's uploads sit at the top of the first chunk.
  */
