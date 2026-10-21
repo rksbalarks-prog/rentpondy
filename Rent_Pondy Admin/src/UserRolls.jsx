@@ -39,6 +39,23 @@ const ALL_FILES = [
   // Whatsapp Send
   { key: "Bulk Whatsapp", label: "Bulk Message", section: "Whatsapp Send" },
   { key: "Single Whatsapp", label: "Single Message", section: "Whatsapp Send" },
+  // WhatsApp (SmartGrowth) — ported from PM_Matri_Admin's Communication > WhatsApp
+  { key: "SG Chats", label: "Chats (and the WhatsApp replies alert)", section: "WhatsApp (SmartGrowth)" },
+  { key: "SG Send Message", label: "Send Message (spends credits)", section: "WhatsApp (SmartGrowth)" },
+  { key: "SG Templates", label: "Templates", section: "WhatsApp (SmartGrowth)" },
+  { key: "SG Action Messages", label: "Action Messages", section: "WhatsApp (SmartGrowth)" },
+  { key: "SG Chatbots", label: "Chatbots", section: "WhatsApp (SmartGrowth)" },
+  { key: "SG Flows", label: "Flows", section: "WhatsApp (SmartGrowth)" },
+  { key: "SG Message Status", label: "Message Status", section: "WhatsApp (SmartGrowth)" },
+  { key: "SG Recent Campaigns", label: "Recent Campaigns", section: "WhatsApp (SmartGrowth)" },
+  { key: "SG Campaign Report", label: "Campaign Report", section: "WhatsApp (SmartGrowth)" },
+  { key: "SG Limits", label: "Limits & Alerts", section: "WhatsApp (SmartGrowth)" },
+  { key: "SG Media Library", label: "Media Library", section: "WhatsApp (SmartGrowth)" },
+  // Autobot — ported from PM_Matri_Admin's AI & Automation > Autobot
+  { key: "Autobot WhatsApp Bot", label: "WhatsApp Bot (runs)", section: "Autobot" },
+  { key: "Autobot Reminder Bot", label: "Reminder Bot", section: "Autobot" },
+  { key: "Autobot New User Bot", label: "New User Bot", section: "Autobot" },
+  { key: "Autobot WhatsApp Report", label: "WhatsApp Bot Report", section: "Autobot" },
   // Office Setup
   { key: "Office", label: "Create Office - List", section: "Office Setup" },
   { key: "Users", label: "Create Staff - List", section: "Office Setup" },
@@ -192,6 +209,7 @@ const ALL_FILES = [
 const SECTION_COLORS = {
   "Dashboard": "#3B82F6", "Login User Report": "#8B5CF6", "Login Direct": "#EC4899",
   "Notification": "#F59E0B", "Whatsapp Send": "#25D366", "Office Setup": "#10B981",
+  "WhatsApp (SmartGrowth)": "#128C7E", "Autobot": "#075E54",
   // "Marketing Team": "#F97316", 
   "Tenant Assistant": "#06B6D4", "RENT Property": "#F97316",
   "RP Property Accounts": "#84CC16", "Mobile view Leads - Ads": "#A855F7",

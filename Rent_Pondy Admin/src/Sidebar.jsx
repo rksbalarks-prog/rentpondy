@@ -8,6 +8,7 @@ import {
   FaTrashAlt, FaSearch, FaPlusCircle, FaUserShield, FaFileAlt,
   FaUserCheck, FaUserClock, FaUserTimes, FaDownload, FaChartLine,
   FaUser, FaPhone, FaRegQuestionCircle, FaEye, FaHome, FaWhatsapp, FaPaperPlane,
+  FaComments, FaTruck, FaHistory, FaChartPie, FaShieldAlt, FaImage, FaWpforms, FaUserPlus, FaRegBell, FaRobot,
 } from "react-icons/fa";
 import {
   RiAccountCircleFill, RiBankCard2Fill, RiBarChart2Fill, RiCaravanFill,
@@ -161,6 +162,28 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             <ul className={show("bulk-whatsapp")}>
               {can("Bulk Whatsapp") && <li className="p-0 mt-2"><NavLink to="/dashboard/bulk-whatsapp" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaPaperPlane />Bulk Message</NavLink></li>}
               {can("Single Whatsapp") && <li className="p-0 mt-2"><NavLink to="/dashboard/single-send-whatsapp" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaWhatsapp />Single Message</NavLink></li>}
+            </ul>
+          </>
+        )}
+
+        {/* ── WHATSAPP (SMARTGROWTH) — PM_Matri_Admin's Communication > WhatsApp ── */}
+        {sv(["SG Chats", "SG Send Message", "SG Templates", "SG Action Messages", "SG Chatbots", "SG Flows", "SG Message Status", "SG Recent Campaigns", "SG Campaign Report", "SG Limits", "SG Media Library"]) && (
+          <>
+            <li className="p-3 mt-2 text-white" onClick={() => toggleMenu("smartgrowth")} style={{ borderRadius: "5px", background: "#8BC34A", cursor: "pointer" }}>
+              <FaWhatsapp size={20} style={{ marginRight: "10px" }} />WhatsApp (SmartGrowth)
+            </li>
+            <ul className={show("smartgrowth")}>
+              {can("SG Chats") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-chats" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaComments />Chats</NavLink></li>}
+              {can("SG Send Message") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-send" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaPaperPlane />Send Message</NavLink></li>}
+              {can("SG Templates") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-templates" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaFileAlt />Templates</NavLink></li>}
+              {can("SG Action Messages") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-action-messages" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaBell />Action Messages</NavLink></li>}
+              {can("SG Chatbots") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-chatbots" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaRobot />Chatbots</NavLink></li>}
+              {can("SG Flows") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-flows" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaWpforms />Flows</NavLink></li>}
+              {can("SG Message Status") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-status" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaTruck />Message Status</NavLink></li>}
+              {can("SG Recent Campaigns") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-recent" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaHistory />Recent Campaigns</NavLink></li>}
+              {can("SG Campaign Report") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-report" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaChartPie />Campaign Report</NavLink></li>}
+              {can("SG Limits") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-limits" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaShieldAlt />Limits &amp; Alerts</NavLink></li>}
+              {can("SG Media Library") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-media" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaImage />Media Library</NavLink></li>}
             </ul>
           </>
         )}
@@ -459,6 +482,21 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               {can("AI Chat History") && <li className="p-0 mt-2"><NavLink to="/dashboard/ai-chat-history" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><RiUserFill size={20} />🗒️ AI Chat History</NavLink></li>}
               {can("AI Chatbot Settings") && <li className="p-0 mt-2"><NavLink to="/dashboard/ai-chatbot-settings" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><RiUserFill size={20} />⚙️ Chatbot Settings</NavLink></li>}
               {can("AI Guardrail Log") && <li className="p-0 mt-2"><NavLink to="/dashboard/ai-guardrail-log" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><RiUserFill size={20} />🛡️ Guardrail Log</NavLink></li>}
+            </ul>
+          </>
+        )}
+
+        {/* ── AUTOBOT — PM_Matri_Admin's AI & Automation > Autobot (WhatsApp senders) ── */}
+        {sv(["Autobot WhatsApp Bot", "Autobot Reminder Bot", "Autobot New User Bot", "Autobot WhatsApp Report"]) && (
+          <>
+            <li className="p-3 mt-2 text-white" onClick={() => toggleMenu("autobot")} style={{ borderRadius: "5px", background: "#8BC34A", cursor: "pointer" }}>
+              <RiRobot2Fill size={20} style={{ marginRight: "10px" }} />Autobot
+            </li>
+            <ul className={show("autobot")}>
+              {can("Autobot WhatsApp Bot") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-bot" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaWhatsapp />WhatsApp Bot</NavLink></li>}
+              {can("Autobot Reminder Bot") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-reminder" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaRegBell />Reminder Bot</NavLink></li>}
+              {can("Autobot New User Bot") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-newuser" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><FaUserPlus />New User Bot</NavLink></li>}
+              {can("Autobot WhatsApp Report") && <li className="p-0 mt-2"><NavLink to="/dashboard/sg-bot-report" onClick={toggleSidebar} className={({ isActive }) => isActive ? "active-link rounded" : ""}><RiBarChart2Fill size={20} />WhatsApp Bot Report</NavLink></li>}
             </ul>
           </>
         )}

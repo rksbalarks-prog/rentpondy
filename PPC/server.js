@@ -108,6 +108,8 @@ import RcmRouter from "./Rcm/RcmRouter.js"; // Call Management (/process/dashboa
 import AdExpressRouter from './AdExpress/AdExpressRouter.js';
 import adExpressSchedule from './AdExpress/schedule.js';
 import autoExpire from './AutoExpire/index.js'; // nightly auto-expire (own collections + /auto-expire/* routes)
+// SmartGrowth WhatsApp panel ported from PM_Matri_Admin (own sg_* collections + /sg/* routes)
+import smartGrowth from './SmartGrowth/index.js';
 // import RoleAccessRouter from './RoleAccess/RoleAccessRouter.js'; // Role Access routes
 
 // AI voice + chat assistant (additive layer — see ./assistant/).
@@ -836,6 +838,7 @@ app.use("/PPC/api/bulk-whatsapp", BulkWhatsappRouter); // Admin Bulk WhatsApp (c
 app.use("/PPC", RcmRouter); // Call Management (/process/dashboard/rp.wfh) routes
 app.use("/PPC", AdExpressRouter); // Adexpress import: /adexpress/* (staging only)
 app.use("/PPC", autoExpire.router); // Auto-expire: /auto-expire/status, /preview, /run-now, /mode
+app.use("/PPC", smartGrowth); // SmartGrowth WhatsApp: /sg/* (Chats, Send, Templates, Status, Report, Autobot ...)
 // app.use("/PPC", RoleAccessRouter); // Roles Access routes
 
 // ── WhatsApp (SmartGrowth AI campaign API) ───────────────────────────────────
@@ -884,4 +887,6 @@ app.listen(PORT, () => {
   adExpressSchedule.start();
   // Nightly auto-expire (03:00 IST). Starts in dry-run: reports only.
   autoExpire.start();
+  // SmartGrowth Autobot / action-message scheduler. Asleep unless SMARTGROWTH_RUNNER=1.
+  smartGrowth.scheduler.start();
 });

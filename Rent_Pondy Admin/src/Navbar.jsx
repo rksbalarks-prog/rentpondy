@@ -7,6 +7,7 @@ import { FaBars, FaTimes, FaUserCircle, FaCog, FaSignOutAlt } from "react-icons/
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getAdminBase, adminBaseLabel } from "./utils/adminBase";
+import SgReplyAlert from "./SmartGrowth/SgReplyAlert";
 
 const AppNavbar = ({ toggleSidebar }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -92,6 +93,9 @@ const AppNavbar = ({ toggleSidebar }) => {
           >
             {baseLabel}
           </span>
+
+          {/* WhatsApp replies (SmartGrowth) — renders nothing unless the role has "SG Chats" */}
+          <SgReplyAlert />
 
           <span>
             Welcome, <strong>{adminName}</strong>

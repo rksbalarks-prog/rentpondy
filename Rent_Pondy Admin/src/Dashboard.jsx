@@ -201,6 +201,22 @@ import StayPlans from './StayPricing/StayPlans';
 import StayPayU from './StayPricing/StayPayU';
 import BulkWhatsapp from './BulkWhatsapp';
 import SingleSendMessage from './SingleSendMessage';
+// SmartGrowth WhatsApp panel (ported from PM_Matri_Admin) — Communication > WhatsApp + Autobot
+import SgChats from './SmartGrowth/SgChats';
+import SgSend from './SmartGrowth/SgSend';
+import SgTemplates from './SmartGrowth/SgTemplates';
+import SgActionMessages from './SmartGrowth/SgActionMessages';
+import SgChatbots from './SmartGrowth/SgChatbots';
+import SgFlows from './SmartGrowth/SgFlows';
+import SgStatus from './SmartGrowth/SgStatus';
+import SgRecent from './SmartGrowth/SgRecent';
+import SgReport from './SmartGrowth/SgReport';
+import SgLimits from './SmartGrowth/SgLimits';
+import SgMedia from './SmartGrowth/SgMedia';
+import SgBotRuns from './SmartGrowth/SgBotRuns';
+import SgReminder from './SmartGrowth/SgReminder';
+import SgNewUserBot from './SmartGrowth/SgNewUserBot';
+import SgBotReport from './SmartGrowth/SgBotReport';
 import SearchPincode from './SearchPincode';
 import SearchPincodeChennai from './SearchPincodeChennai';
 import PointsPlans from './PointsPricing/PointsPlans';
@@ -418,6 +434,21 @@ const routes = [
   { path: "/stay-payu-records",         element: <StayPayU />,                   permissionKey: "Exclusive Location" },
   { path: "/bulk-whatsapp",             element: <BulkWhatsapp />,               permissionKey: "Bulk Whatsapp" },
   { path: "/single-send-whatsapp",      element: <SingleSendMessage />,          permissionKey: "Single Whatsapp" },
+  { path: "/sg-chats",                  element: <SgChats />,                    permissionKey: "SG Chats" },
+  { path: "/sg-send",                   element: <SgSend />,                     permissionKey: "SG Send Message" },
+  { path: "/sg-templates",              element: <SgTemplates />,                permissionKey: "SG Templates" },
+  { path: "/sg-action-messages",        element: <SgActionMessages />,           permissionKey: "SG Action Messages" },
+  { path: "/sg-chatbots",               element: <SgChatbots />,                 permissionKey: "SG Chatbots" },
+  { path: "/sg-flows",                  element: <SgFlows />,                    permissionKey: "SG Flows" },
+  { path: "/sg-status",                 element: <SgStatus />,                   permissionKey: "SG Message Status" },
+  { path: "/sg-recent",                 element: <SgRecent />,                   permissionKey: "SG Recent Campaigns" },
+  { path: "/sg-report",                 element: <SgReport />,                   permissionKey: "SG Campaign Report" },
+  { path: "/sg-limits",                 element: <SgLimits />,                   permissionKey: "SG Limits" },
+  { path: "/sg-media",                  element: <SgMedia />,                    permissionKey: "SG Media Library" },
+  { path: "/sg-bot",                    element: <SgBotRuns />,                  permissionKey: "Autobot WhatsApp Bot" },
+  { path: "/sg-reminder",               element: <SgReminder />,                 permissionKey: "Autobot Reminder Bot" },
+  { path: "/sg-newuser",                element: <SgNewUserBot />,               permissionKey: "Autobot New User Bot" },
+  { path: "/sg-bot-report",             element: <SgBotReport />,                permissionKey: "Autobot WhatsApp Report" },
   { path: "/search-pincode-pondicherry", element: <SearchPincode />,             permissionKey: "Search Pincode" },
   { path: "/search-pincode-chennai",     element: <SearchPincodeChennai />,       permissionKey: "Search Pincode Chennai" },
   { path: "/points-plans",              element: <PointsPlans />,                permissionKey: "Points Plans" },
